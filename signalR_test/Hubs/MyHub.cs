@@ -12,7 +12,7 @@ namespace signalR_server.Hubs
     {
         static List<User> clients = new List<User>();
         static List<Group> groups = new List<Group>();
-        static int groupAmount = 0;
+        static int maxGroupCount = 6;
         int firstConnect = 0;
         // client will use SendMessageAsync to send messages
         // server will use receiveMessage(event on the client)
@@ -33,7 +33,6 @@ namespace signalR_server.Hubs
             // userJoined : an event in the client
             await Clients.Caller.SendAsync("getConnectionId", Context.ConnectionId);
             clients.Add(new User(Context.ConnectionId)); // add to clients list
-            Console.WriteLine("!!grp amnt: " + groupAmount);
             //if (firstConnect == 0)
             //{
             //    // add default groups
@@ -51,16 +50,12 @@ namespace signalR_server.Hubs
             //await Clients.All.UserJoined(Context.ConnectionId);
 
             List<string> groupNames = new List<string>();
-            var count = 0;
             foreach (Group grp in groups)
             {
-                Console.WriteLine("count: " + count);
-                count++;
                 if (grp.getGroupName() != null)
                     groupNames.Add(grp.getGroupName());
             }
             await Clients.Caller.SendAsync("updateGroups", groupNames);
-            Console.WriteLine("------------------");
         }
 
         // when a client disconnects from the server this method awakes
@@ -104,11 +99,11 @@ namespace signalR_server.Hubs
                     return;
                 }
             }
-            if(groupAmount != 6)
+            
+            if(groups.Count() < maxGroupCount)
             {
                 await Groups.AddToGroupAsync(connectionId, groupName);
                 groups.Add(new Group(groupName, connectionId));
-                groupAmount++;
                 List<string> groupNames = new List<string>();
                 foreach (Group grp in groups)
                 {
