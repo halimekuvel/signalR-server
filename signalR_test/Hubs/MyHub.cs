@@ -98,7 +98,7 @@ namespace signalR_server.Hubs
                     // if user is not already in the group
                     if(grp.getMembers().Contains(connectionId) == false)
                     {
-                        groups.Add(new Group(groupName, connectionId));
+                        //groups.Find(grp).addMember(connectionId);
                         await Groups.AddToGroupAsync(connectionId, groupName);
                     }
                     return;
