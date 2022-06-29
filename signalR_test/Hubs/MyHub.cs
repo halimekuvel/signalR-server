@@ -99,7 +99,10 @@ namespace signalR_server.Hubs
         public async Task AddGroup(string connectionId, string groupName)
         {
             bool isGroupExist = false;
-            
+            //if (groups.Where(o=>o.members.Where(x=>x.getConnectionId() == connectionId).Any()))
+            //{
+
+            //}
             if (groups.Where(o => o.getGroupName() == groupName).Any() && groups.Count != 0 )
                  isGroupExist = true;
             else
@@ -128,3 +131,19 @@ namespace signalR_server.Hubs
         }
     }
 }
+/*
+ * 30.06.2022 de silinecek.
+                if (String.Equals(grp.getGroupName(), groupName) == true)
+                {
+                    // if user is not already in the group
+                    var client = clients.FirstOrDefault(o => o.getConnectionId() == connectionId);
+                    if (!grp.members.Contains(client))
+                    {
+                        grp.members.Add(client);
+                        //groups.Find(grp).addMember(connectionId);
+                        await Groups.AddToGroupAsync(connectionId, groupName);
+                    }
+
+                    return;
+                }
+ */

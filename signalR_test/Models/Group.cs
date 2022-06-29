@@ -9,7 +9,7 @@ namespace signalR_server.Models
     {
         private string groupName;
         private string createdByConnId;
-        private List<string> members = new List<string>();
+        public List<User> members { get; set; } = new List<User>();
 
         public Group(string groupName, string createdByConnId)
         {
@@ -28,24 +28,19 @@ namespace signalR_server.Models
             return createdByConnId;
         }
 
-        public List<string> getMembers()
-        {
-            return members;
-        }
-
         public void setGroupName(string groupName)
         {
             this.groupName = groupName;
         }
 
-        public void addMember(string connectionId)
+        public void addMember(User user)
         {
-            members.Add(connectionId);
+            members.Add(user);
         }
 
-        public void removeMember(string connectionId)
+        public void removeMember(User user)
         {
-            members.Remove(connectionId);
+            members.Remove(user);
         }
     }
 }
