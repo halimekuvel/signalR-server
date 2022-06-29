@@ -18,12 +18,26 @@ namespace signalR_server.Hubs
         // server will use receiveMessage(event on the client)
         public async Task SendMessageAsync(string message)
         {
-            await Clients.All.SendAsync("receiveMessage", message);
+            // find username
+            var userName = "";
+            foreach(User usr in clients)
+            {
+                if (usr.getConnectionId() == Context.ConnectionId)
+                    userName = usr.getUserName();
+            }
+            await Clients.All.SendAsync("receiveMessage", message, Context.ConnectionId, userName);
         }
 
         public async Task SendMessageToGroupAsync(string message, string groupName)
         {
-            await Clients.Group(groupName).SendAsync("receiveGroupMessage", message);
+            // find username
+            var userName = "";
+            foreach (User usr in clients)
+            {
+                if (usr.getConnectionId() == Context.ConnectionId)
+                    userName = usr.getUserName();
+            }
+            await Clients.Group(groupName).SendAsync("receiveGroupMessage", message, Context.ConnectionId, userName);
         }
 
         // when a client connects to the server this method awakes
@@ -83,8 +97,8 @@ namespace signalR_server.Hubs
 
         public async Task addGroup(string connectionId, string groupName)
         {
-            // adds the client to the group 
-            // if the group doesn't exist it creates the group first 
+            // adds the client to the group             
+
             foreach(Group grp in groups)
             {
                 // if group already exists
@@ -99,17 +113,18 @@ namespace signalR_server.Hubs
                     return;
                 }
             }
-            
-            if(groups.Count() < maxGroupCount)
+
+            // if the group doesn't exist it creates the group first
+            if (groups.Count() < maxGroupCount)
             {
                 await Groups.AddToGroupAsync(connectionId, groupName);
                 groups.Add(new Group(groupName, connectionId));
-                List<string> groupNames = new List<string>();
-                foreach (Group grp in groups)
-                {
-                    if (grp.getGroupName() != null)
-                        groupNames.Add(grp.getGroupName());
-                }
+                //List<string> groupNames = new List<string>();
+                //foreach (Group grp in groups)
+                //{
+                //    if (grp.getGroupName() != null)
+                //        groupNames.Add(grp.getGroupName());
+                //}
                 await Clients.All.SendAsync("checkAddGroupOk", true, groupName);
             }
             else
