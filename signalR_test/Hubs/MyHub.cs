@@ -96,26 +96,67 @@ namespace signalR_server.Hubs
             //await Clients.All.UserLeft(Context.ConnectionId);
         }
 
+        //public async Task AddGroup(string connectionId, string groupName)
+        //{
+        //    bool isGroupExist = false;
+        //    //if (groups.Where(o=>o.members.Where(x=>x.getConnectionId() == connectionId).Any()))
+        //    //{
+
+        //    //}
+        //    if (groups.Where(o => o.getGroupName() == groupName).Any() && groups.Count != 0 )
+        //         isGroupExist = true;
+        //    else
+        //    {
+        //        if (groups.Count < (int)GroupEnum.maxGroupCount)
+        //        {
+        //            await Groups.AddToGroupAsync(connectionId, groupName);
+        //            groups.Add(new Group(groupName, connectionId));
+        //        }
+        //        else
+        //            isGroupExist = true;
+        //    }
+        //    await Clients.All.SendAsync("checkAddGroup", isGroupExist, groupName);
+        //}
+
         public async Task AddGroup(string connectionId, string groupName)
         {
-            bool isGroupExist = false;
-            //if (groups.Where(o=>o.members.Where(x=>x.getConnectionId() == connectionId).Any()))
-            //{
-
-            //}
-            if (groups.Where(o => o.getGroupName() == groupName).Any() && groups.Count != 0 )
-                 isGroupExist = true;
-            else
+            var groupAlreadyExists = true;
+            // if there isn't already a group with that groupName
+            // create group and add the creator to the group
+            if (!groups.Where(o => o.getGroupName() == groupName).Any())
             {
-                if (groups.Count < (int)GroupEnum.maxGroupCount)
-                {
-                    await Groups.AddToGroupAsync(connectionId, groupName);
-                    groups.Add(new Group(groupName, connectionId));
-                }
-                else
-                    isGroupExist = true;
+                groupAlreadyExists = false;
+
+                await Groups.AddToGroupAsync(connectionId, groupName);
+                User newUser = clients.Where(o => o.getConnectionId() == connectionId).FirstOrDefault();
+                Group newGroup = new Group(groupName, connectionId);
+                newGroup.addMember(newUser);
+                groups.Add(newGroup);
             }
-            await Clients.All.SendAsync("checkAddGroupOk", isGroupExist, groupName);
+            await Clients.All.SendAsync("checkAddGroup", groupAlreadyExists, groupName, connectionId);
+        }
+
+        public async Task JoinGroup(string connectionId, string groupName)
+        {
+            var alreadyInGroup = true;
+            if (groups.Where(o => o.getGroupName() == groupName).Any()) // if there's a group with that groupName :: aslında gerekli degil ama her ihtimale karsı
+            {
+                User usr = clients.Where(o => o.getConnectionId() == connectionId).FirstOrDefault();
+                var theGroup = groups.Where(o => o.getGroupName() == groupName).FirstOrDefault();
+                // if the user is not already in the group, add the user to the group
+                if (!theGroup.members.Contains(usr))
+                {
+                    alreadyInGroup = false;
+                    await Groups.AddToGroupAsync(connectionId, groupName);
+                    theGroup.members.Add(usr);
+                }
+            }
+            await Clients.Caller.SendAsync("checkJoinGroup", alreadyInGroup);
+        }
+
+        public async Task RemoveGroup(string connectionId, string groupName)
+        {
+            await Groups.RemoveFromGroupAsync(connectionId, groupName);
         }
 
         public async Task AddUserName(string userName, string connectionId)
