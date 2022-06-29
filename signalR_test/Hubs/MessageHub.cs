@@ -65,7 +65,7 @@ namespace signalR_server.Hubs
             await Clients.Caller.SendAsync("getConnectionId", Context.ConnectionId);
         }
 
-        public async Task addGroup(string connectionId, string groupName)
+        public async Task AddGroup(string connectionId, string groupName)
         {
             // adds the client to the group 
             // if the group doesn't exist it creates the group first 

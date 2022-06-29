@@ -20,7 +20,7 @@ namespace signalR_server.Hubs
         {
             // find username
             var userName = "";
-            foreach(User usr in clients)
+            foreach (User usr in clients)
             {
                 if (usr.getConnectionId() == Context.ConnectionId)
                     userName = usr.getUserName();
@@ -82,9 +82,9 @@ namespace signalR_server.Hubs
             clients.Remove(disconUser); // remove from the clients list
 
             List<string> userNames = new List<string>();
-            foreach(User usr in clients)
+            foreach (User usr in clients)
             {
-                if(usr.getUserName() != null)
+                if (usr.getUserName() != null)
                     userNames.Add(usr.getUserName());
             }
             await Clients.All.SendAsync("clients", userNames);
@@ -95,46 +95,26 @@ namespace signalR_server.Hubs
             //await Clients.All.UserLeft(Context.ConnectionId);
         }
 
-        public async Task addGroup(string connectionId, string groupName)
+        public async Task AddGroup(string connectionId, string groupName)
         {
-            // adds the client to the group             
-
-            foreach(Group grp in groups)
-            {
-                // if group already exists
-                if(String.Equals(grp.getGroupName(), groupName) == true)
-                {
-                    // if user is not already in the group
-                    if(grp.getMembers().Contains(connectionId) == false)
-                    {
-                        //groups.Find(grp).addMember(connectionId);
-                        await Groups.AddToGroupAsync(connectionId, groupName);
-                    }
-                    return;
-                }
-            }
-
-            // if the group doesn't exist it creates the group first
-            if (groups.Count() < maxGroupCount)
-            {
-                await Groups.AddToGroupAsync(connectionId, groupName);
-                groups.Add(new Group(groupName, connectionId));
-                //List<string> groupNames = new List<string>();
-                //foreach (Group grp in groups)
-                //{
-                //    if (grp.getGroupName() != null)
-                //        groupNames.Add(grp.getGroupName());
-                //}
-                await Clients.All.SendAsync("checkAddGroupOk", true, groupName);
-            }
+            bool isGroupExist = false;
+            
+            if (groups.Where(o => o.getGroupName() == groupName).Any() && groups.Count != 0 )
+                 isGroupExist = true;
             else
             {
-                await Clients.Caller.SendAsync("checkAddGroupOk", false, "");
+                if (groups.Count < maxGroupCount)
+                {
+                    await Groups.AddToGroupAsync(connectionId, groupName);
+                    groups.Add(new Group(groupName, connectionId));
+                }
+                else
+                    isGroupExist = true;
             }
-           
+            await Clients.All.SendAsync("checkAddGroupOk", isGroupExist, groupName);
         }
 
-        public async Task addUserName(string userName, string connectionId)
+        public async Task AddUserName(string userName, string connectionId)
         {
             clients.Find(x => String.Equals(x.getConnectionId(), connectionId) == true).setUserName(userName);
             List<string> userNames = new List<string>();
