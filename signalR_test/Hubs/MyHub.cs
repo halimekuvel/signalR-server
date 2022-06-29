@@ -1,5 +1,6 @@
 ﻿using Microsoft.AspNetCore.SignalR;
 using signalR_server.Interfaces;
+using signalR_server.Interfaces.Enums;
 using signalR_server.Models;
 using System;
 using System.Collections.Generic;
@@ -78,7 +79,7 @@ namespace signalR_server.Hubs
             // notify the users that a client has left
             // userLeft : an event in the client
 
-            User disconUser = clients.Find(x => String.Equals(x.getConnectionId(), Context.ConnectionId) == true);
+            User disconUser = clients.Find(x => String.Equals(x.getConnectionId(), Context.ConnectionId));
             clients.Remove(disconUser); // remove from the clients list
 
             List<string> userNames = new List<string>();
@@ -103,7 +104,7 @@ namespace signalR_server.Hubs
                  isGroupExist = true;
             else
             {
-                if (groups.Count < maxGroupCount)
+                if (groups.Count < (int)GroupEnum.maxGroupCount)
                 {
                     await Groups.AddToGroupAsync(connectionId, groupName);
                     groups.Add(new Group(groupName, connectionId));
@@ -116,7 +117,7 @@ namespace signalR_server.Hubs
 
         public async Task AddUserName(string userName, string connectionId)
         {
-            clients.Find(x => String.Equals(x.getConnectionId(), connectionId) == true).setUserName(userName);
+            clients.Find(x => String.Equals(x.getConnectionId(), connectionId)).setUserName(userName);
             List<string> userNames = new List<string>();
             foreach (User usr in clients)
             {
