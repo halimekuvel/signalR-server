@@ -178,7 +178,7 @@ namespace signalR_server.Hubs
             if (client == null) return;
             client.userName = userName;
             await Clients.All.SendAsync("userJoined", userName);
-            await Clients.All.SendAsync("clients", client.userName);
+            await Clients.All.SendAsync("clients", clients.Where(o=>o.userName !=null).Select(o=>o.userName));
 
         }
     }
