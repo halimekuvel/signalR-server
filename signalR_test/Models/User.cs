@@ -7,33 +7,16 @@ namespace signalR_server.Models
 {
     public class User
     {
-        public string userName;
-        public string connectionId;
-
+        public string userName { get; set; }
+        public string connectionId { get; set; }
+        public User(string connectionId, string userName)
+        {
+            this.connectionId = connectionId;
+            this.userName = userName;
+        }
         public User(string connectionId)
         {
             this.connectionId = connectionId;
-            userName = null;
-        }
-
-        public void setUserName(string userName)
-        {
-            this.userName = userName;
-        }
-
-        public void setConnectionId(string connectionId)
-        {
-            this.connectionId = connectionId;
-        }
-
-        public string getUserName()
-        {
-            return userName;
-        }
-
-        public string getConnectionId()
-        {
-            return connectionId;
         }
     }
 }

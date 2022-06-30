@@ -15,8 +15,6 @@ namespace signalR_server.Hubs
     {
         static List<User> clients = new List<User>();
         static List<Group> groups = new List<Group>();
-        static int maxGroupCount = 6;
-        int firstConnect = 0;
         // client will use SendMessageAsync to send messages
         // server will use receiveMessage(event on the client)
         public async Task SendMessageAsync(string message)
@@ -25,8 +23,8 @@ namespace signalR_server.Hubs
             var userName = "";
             foreach (User usr in clients)
             {
-                if (usr.getConnectionId() == Context.ConnectionId)
-                    userName = usr.getUserName();
+                if (usr.connectionId == Context.ConnectionId)
+                    userName = usr.userName;
             }
             await Clients.All.SendAsync("receiveMessage", message, Context.ConnectionId, userName);
         }
@@ -37,8 +35,8 @@ namespace signalR_server.Hubs
             var userName = "";
             foreach (User usr in clients)
             {
-                if (usr.getConnectionId() == Context.ConnectionId)
-                    userName = usr.getUserName();
+                if (usr.connectionId == Context.ConnectionId)
+                    userName = usr.userName;
             }
             await Clients.Group(groupName).SendAsync("receiveGroupMessage", message, Context.ConnectionId, userName);
         }
@@ -60,7 +58,7 @@ namespace signalR_server.Hubs
             //    firstConnect = 1;
             //}
             //await Clients.All.SendAsync("clients", clients);
-            await Clients.All.SendAsync("userJoined", Context.ConnectionId);
+            //await Clients.All.SendAsync("userJoined", Context.ConnectionId);
             // after the IMessageClient iterface created 
             // instead of the lines above we can use the lines below:
             //await Clients.All.Clients(clients);
@@ -81,14 +79,14 @@ namespace signalR_server.Hubs
             // notify the users that a client has left
             // userLeft : an event in the client
 
-            User disconUser = clients.Find(x => String.Equals(x.getConnectionId(), Context.ConnectionId));
+            User disconUser = clients.Find(x => String.Equals(x.connectionId, Context.ConnectionId));
             clients.Remove(disconUser); // remove from the clients list
 
             List<string> userNames = new List<string>();
             foreach (User usr in clients)
             {
-                if (usr.getUserName() != null)
-                    userNames.Add(usr.getUserName());
+                if (usr.userName != null)
+                    userNames.Add(usr.userName);
             }
             await Clients.All.SendAsync("clients", userNames);
             await Clients.All.SendAsync("userLeft", Context.ConnectionId);
@@ -130,7 +128,7 @@ namespace signalR_server.Hubs
                 groupAlreadyExists = false;
 
                 await Groups.AddToGroupAsync(connectionId, groupName);
-                User User = clients.Where(o => o.getConnectionId() == connectionId).FirstOrDefault();
+                User User = clients.Where(o => o.connectionId == connectionId).FirstOrDefault();
                 Group newGroup = new Group(groupName, connectionId);
                 newGroup.addMember(User);
                 groups.Add(newGroup);
@@ -141,18 +139,16 @@ namespace signalR_server.Hubs
         public async Task JoinGroup(string connectionId, string groupName)
         {
             GroupResponse response = new GroupResponse();
-            string userName="";
-            var alreadyInGroup = true;
-            var theGroup=groups.First();
+            string userName = "";
+            var theGroup = groups.First();
             if (groups.Where(o => o.getGroupName() == groupName).Any()) // if there's a group with that groupName :: aslında gerekli degil ama her ihtimale karsı
             {
-                User usr = clients.Where(o => o.getConnectionId() == connectionId).FirstOrDefault();
-                userName = usr.getUserName();
-                 theGroup = groups.Where(o => o.getGroupName() == groupName).FirstOrDefault();
+                User usr = clients.Where(o => o.connectionId == connectionId).FirstOrDefault();
+                userName = usr.userName;
+                theGroup = groups.Where(o => o.getGroupName() == groupName).FirstOrDefault();
                 // if the user is not already in the group, add the user to the group
                 if (!theGroup.members.Contains(usr))
                 {
-                    alreadyInGroup = false;
                     await Groups.AddToGroupAsync(connectionId, groupName);
                     theGroup.members.Add(usr);
                 }
@@ -164,7 +160,7 @@ namespace signalR_server.Hubs
                     ClienInGroup = theGroup.members.Contains(usr)
                 };
             }
-           
+
 
             await Clients.Caller.SendAsync("checkJoinGroup", JsonConvert.SerializeObject(response), theGroup.members);
             await Clients.Group(groupName).SendAsync("notificationJoinGroup", userName);
@@ -176,52 +172,15 @@ namespace signalR_server.Hubs
         }
 
         public async Task AddUserName(string userName, string connectionId)
-        {
-            int returnVal; // -1 : name already taken
-                           // 0 : invalid name
-                           // 1 : success
-
-            // if userName is already taken
-            if(clients.Where(o => o.getUserName() == userName).Any())
-            {
-                returnVal = -1;
-            }
-            // userName should only contain letters or digits
-            else if(!userName.All(c => Char.IsLetterOrDigit(c)))
-            {
-                returnVal = 0;
-            }
-            else
-            {
-                clients.Find(x => String.Equals(x.getConnectionId(), connectionId)).setUserName(userName);
-                List<string> userNames = new List<string>();
-                foreach (User usr in clients)
-                {
-                    if (usr.getUserName() != null)
-                        userNames.Add(usr.getUserName());
-                }
-                returnVal = 1;
-                await Clients.All.SendAsync("clients", userNames);
-            }
-
-            await Clients.Caller.SendAsync("checkUserName", returnVal, userName);
+        {   
+            if (string.IsNullOrEmpty(userName)) return;
+            var client = clients.FirstOrDefault(o => o.connectionId == connectionId);
+            if (client == null) return;
+            client.userName = userName;
+            await Clients.All.SendAsync("userJoined", userName);
+            await Clients.All.SendAsync("clients", client.userName);
 
         }
     }
 }
-/*
- * 30.06.2022 de silinecek.
-                if (String.Equals(grp.getGroupName(), groupName) == true)
-                {
-                    // if user is not already in the group
-                    var client = clients.FirstOrDefault(o => o.getConnectionId() == connectionId);
-                    if (!grp.members.Contains(client))
-                    {
-                        grp.members.Add(client);
-                        //groups.Find(grp).addMember(connectionId);
-                        await Groups.AddToGroupAsync(connectionId, groupName);
-                    }
 
-                    return;
-                }
- */
