@@ -2,6 +2,7 @@
 using signalR_server.Interfaces;
 using signalR_server.Interfaces.Enums;
 using signalR_server.Models;
+using signalR_server.Response;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -128,9 +129,9 @@ namespace signalR_server.Hubs
                 groupAlreadyExists = false;
 
                 await Groups.AddToGroupAsync(connectionId, groupName);
-                User newUser = clients.Where(o => o.getConnectionId() == connectionId).FirstOrDefault();
+                User User = clients.Where(o => o.getConnectionId() == connectionId).FirstOrDefault();
                 Group newGroup = new Group(groupName, connectionId);
-                newGroup.addMember(newUser);
+                newGroup.addMember(User);
                 groups.Add(newGroup);
             }
             await Clients.All.SendAsync("checkAddGroup", groupAlreadyExists, groupName, connectionId);
@@ -138,10 +139,13 @@ namespace signalR_server.Hubs
 
         public async Task JoinGroup(string connectionId, string groupName)
         {
+            GroupResponse response = new GroupResponse();
+            string userName="";
             var alreadyInGroup = true;
             if (groups.Where(o => o.getGroupName() == groupName).Any()) // if there's a group with that groupName :: aslında gerekli degil ama her ihtimale karsı
             {
                 User usr = clients.Where(o => o.getConnectionId() == connectionId).FirstOrDefault();
+                userName = usr.getUserName();
                 var theGroup = groups.Where(o => o.getGroupName() == groupName).FirstOrDefault();
                 // if the user is not already in the group, add the user to the group
                 if (!theGroup.members.Contains(usr))
@@ -150,8 +154,19 @@ namespace signalR_server.Hubs
                     await Groups.AddToGroupAsync(connectionId, groupName);
                     theGroup.members.Add(usr);
                 }
+                response = new GroupResponse
+                {
+
+                    ClientId = connectionId,
+                    GroupName = groupName,
+                    members = theGroup.members,
+                    ClienInGroup = theGroup.members.Contains(usr)
+                };
             }
-            await Clients.Caller.SendAsync("checkJoinGroup", alreadyInGroup);
+           
+
+            await Clients.Caller.SendAsync("checkJoinGroup", response);
+            await Clients.Group(groupName).SendAsync("notificationJoinGroup", userName);
         }
 
         public async Task RemoveGroup(string connectionId, string groupName)
