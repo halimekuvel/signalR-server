@@ -176,14 +176,35 @@ namespace signalR_server.Hubs
 
         public async Task AddUserName(string userName, string connectionId)
         {
-            clients.Find(x => String.Equals(x.getConnectionId(), connectionId)).setUserName(userName);
-            List<string> userNames = new List<string>();
-            foreach (User usr in clients)
+            int returnVal; // -1 : name already taken
+                           // 0 : invalid name
+                           // 1 : success
+
+            // if userName is already taken
+            if(clients.Where(o => o.getUserName() == userName).Any())
             {
-                if (usr.getUserName() != null)
-                    userNames.Add(usr.getUserName());
+                returnVal = -1;
             }
-            await Clients.All.SendAsync("clients", userNames);
+            // userName should only contain letters or digits
+            else if(!userName.All(c => Char.IsLetterOrDigit(c)))
+            {
+                returnVal = 0;
+            }
+            else
+            {
+                clients.Find(x => String.Equals(x.getConnectionId(), connectionId)).setUserName(userName);
+                List<string> userNames = new List<string>();
+                foreach (User usr in clients)
+                {
+                    if (usr.getUserName() != null)
+                        userNames.Add(usr.getUserName());
+                }
+                returnVal = 1;
+                await Clients.All.SendAsync("clients", userNames);
+            }
+
+            await Clients.Caller.SendAsync("checkUserName", returnVal, userName);
+
         }
     }
 }
