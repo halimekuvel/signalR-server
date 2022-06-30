@@ -1,4 +1,5 @@
 ﻿using Microsoft.AspNetCore.SignalR;
+using Newtonsoft.Json;
 using signalR_server.Interfaces;
 using signalR_server.Interfaces.Enums;
 using signalR_server.Models;
@@ -142,11 +143,12 @@ namespace signalR_server.Hubs
             GroupResponse response = new GroupResponse();
             string userName="";
             var alreadyInGroup = true;
+            var theGroup=groups.First();
             if (groups.Where(o => o.getGroupName() == groupName).Any()) // if there's a group with that groupName :: aslında gerekli degil ama her ihtimale karsı
             {
                 User usr = clients.Where(o => o.getConnectionId() == connectionId).FirstOrDefault();
                 userName = usr.getUserName();
-                var theGroup = groups.Where(o => o.getGroupName() == groupName).FirstOrDefault();
+                 theGroup = groups.Where(o => o.getGroupName() == groupName).FirstOrDefault();
                 // if the user is not already in the group, add the user to the group
                 if (!theGroup.members.Contains(usr))
                 {
@@ -156,16 +158,15 @@ namespace signalR_server.Hubs
                 }
                 response = new GroupResponse
                 {
-
                     ClientId = connectionId,
                     GroupName = groupName,
-                    members = theGroup.members,
+                    members = theGroup.members,//members gitmemekte bakıyorum çözünce burayı silicem
                     ClienInGroup = theGroup.members.Contains(usr)
                 };
             }
            
 
-            await Clients.Caller.SendAsync("checkJoinGroup", response);
+            await Clients.Caller.SendAsync("checkJoinGroup", JsonConvert.SerializeObject(response), theGroup.members);
             await Clients.Group(groupName).SendAsync("notificationJoinGroup", userName);
         }
 
