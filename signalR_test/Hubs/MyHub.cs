@@ -134,7 +134,7 @@ namespace signalR_server.Hubs
                 };
             }
 
-            await Clients.Caller.SendAsync("checkJoinGroup", JsonConvert.SerializeObject(response), theGroup.members);
+            await Clients.Caller.SendAsync("checkJoinGroup", JsonConvert.SerializeObject(response));
             await Clients.Group(groupName).SendAsync("notificationJoinGroup", userName);
         }
 
