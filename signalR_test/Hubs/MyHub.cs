@@ -72,6 +72,19 @@ namespace signalR_server.Hubs
                 if (usr.userName != null)
                     userNames.Add(usr.userName);
             }
+            // delete the user from the groups
+            foreach(Group grp in groups)
+            {
+                foreach(User usr in grp.members)
+                {
+                    if(usr.connectionId == Context.ConnectionId)
+                    {
+                        grp.members.Remove(usr);
+                        break;
+                    }
+                    
+                }
+            }
             await Clients.All.SendAsync("clients", userNames);
             await Clients.All.SendAsync("userLeft", Context.ConnectionId);
         }
