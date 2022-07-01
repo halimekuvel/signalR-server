@@ -48,22 +48,6 @@ namespace signalR_server.Hubs
             // userJoined : an event in the client
             await Clients.Caller.SendAsync("getConnectionId", Context.ConnectionId);
             clients.Add(new User(Context.ConnectionId)); // add to clients list
-            //if (firstConnect == 0)
-            //{
-            //    // add default groups
-            //    Console.WriteLine("here");
-            //    await addGroup("server", "A");
-            //    await addGroup("server", "B");
-            //    await addGroup("server", "C");
-            //    firstConnect = 1;
-            //}
-            //await Clients.All.SendAsync("clients", clients);
-            //await Clients.All.SendAsync("userJoined", Context.ConnectionId);
-            // after the IMessageClient iterface created 
-            // instead of the lines above we can use the lines below:
-            //await Clients.All.Clients(clients);
-            //await Clients.All.UserJoined(Context.ConnectionId);
-
             List<string> groupNames = new List<string>();
             foreach (Group grp in groups)
             {
@@ -90,33 +74,9 @@ namespace signalR_server.Hubs
             }
             await Clients.All.SendAsync("clients", userNames);
             await Clients.All.SendAsync("userLeft", Context.ConnectionId);
-            // after the IMessageClient iterface created 
-            // instead of the lines above we can use the lines below:
-            //await Clients.All.Clients(clients);
-            //await Clients.All.UserLeft(Context.ConnectionId);
         }
 
-        //public async Task AddGroup(string connectionId, string groupName)
-        //{
-        //    bool isGroupExist = false;
-        //    //if (groups.Where(o=>o.members.Where(x=>x.getConnectionId() == connectionId).Any()))
-        //    //{
-
-        //    //}
-        //    if (groups.Where(o => o.getGroupName() == groupName).Any() && groups.Count != 0 )
-        //         isGroupExist = true;
-        //    else
-        //    {
-        //        if (groups.Count < (int)GroupEnum.maxGroupCount)
-        //        {
-        //            await Groups.AddToGroupAsync(connectionId, groupName);
-        //            groups.Add(new Group(groupName, connectionId));
-        //        }
-        //        else
-        //            isGroupExist = true;
-        //    }
-        //    await Clients.All.SendAsync("checkAddGroup", isGroupExist, groupName);
-        //}
+        
 
         public async Task AddGroup(string connectionId, string groupName)
         {
@@ -156,11 +116,10 @@ namespace signalR_server.Hubs
                 {
                     ClientId = connectionId,
                     GroupName = groupName,
-                    members = theGroup.members,//members gitmemekte bakıyorum çözünce burayı silicem
+                    members = theGroup.members,     
                     ClienInGroup = theGroup.members.Contains(usr)
                 };
             }
-
 
             await Clients.Caller.SendAsync("checkJoinGroup", JsonConvert.SerializeObject(response), theGroup.members);
             await Clients.Group(groupName).SendAsync("notificationJoinGroup", userName);
@@ -176,11 +135,27 @@ namespace signalR_server.Hubs
             if (string.IsNullOrEmpty(userName)) return;
             var client = clients.FirstOrDefault(o => o.connectionId == connectionId);
             if (client == null) return;
+            if (clients.Where(o => o.userName == userName).Count() > 0) return;            
             client.userName = userName;
             await Clients.All.SendAsync("userJoined", userName);
             await Clients.All.SendAsync("clients", clients.Where(o=>o.userName !=null).Select(o=>o.userName));
+            /*  
+                Cem : 
+                Mesaj gönderildikten sonra ve grup kuruluktan sonra İnput alanları içinde sıfırlama yapılmalı
+                Burası için connection.on methodu yazılacak eğer birden fazla username geliyorsa o client e hata dönmeliyiz.
+                Bu hatada "This username already taken!" dönmeli.   
+                Giriş yapıldıktan sonra username text inin içi disabled olmalı
+                2- Otomatik olarak girilen grup için mesaj kısmı açık gelmeli şu an join grup dediğimizde gelmekte. 
+             */
 
+            /*
+                Halime : 
+                1- Kurulan gruba otomatik olarak üye olunmakta üye olunan grubun adı yeşil yanmalı ve yeni üye olunacak grubun da arka planı yeşil olmalı.
+                2- Join grup dendiğinde açılan mesaj kutusu o seçilen grubun mesajlarına özgü olmalı.
+                3- Response içerisinde members gitmemekte  -- JSON ile alakalı olabilir. Client tarafında JSON.Parse() ?
+             */
         }
+
     }
 }
 
