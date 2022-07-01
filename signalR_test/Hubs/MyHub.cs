@@ -169,8 +169,7 @@ namespace signalR_server.Hubs
 
             /*  
                 Cem : 
-                2- Otomatik olarak girilen grup için mesaj kısmı açık gelmeli şu an join grup dediğimizde gelmekte. 
-                enter butun buton ıcın aktıf olmalı
+                Otomatik olarak girilen grup için mesaj kısmı açık gelmeli şu an join grup dediğimizde gelmekte. 
              */
 
             /*
