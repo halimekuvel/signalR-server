@@ -167,17 +167,7 @@ namespace signalR_server.Hubs
             await Clients.All.SendAsync("userJoined", userName);
             await Clients.All.SendAsync("clients", clients.Where(o=>o.userName !=null).Select(o=>o.userName));
 
-            /*  
-                Cem : 
-                Otomatik olarak girilen grup için mesaj kısmı açık gelmeli şu an join grup dediğimizde gelmekte. 
-             */
-
-            /*
-                Halime : 
-                1- Kurulan gruba otomatik olarak üye olunmakta üye olunan grubun adı yeşil yanmalı ve yeni üye olunacak grubun da arka planı yeşil olmalı.
-                2- Join grup dendiğinde açılan mesaj kutusu o seçilen grubun mesajlarına özgü olmalı.
-                3- Response içerisinde members gitmemekte  -- JSON ile alakalı olabilir. Client tarafında JSON.Parse() ?
-             */
+           
         }
 
     }
