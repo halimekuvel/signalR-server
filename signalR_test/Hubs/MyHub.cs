@@ -132,20 +132,32 @@ namespace signalR_server.Hubs
 
         public async Task AddUserName(string userName, string connectionId)
         {   
-            if (string.IsNullOrEmpty(userName)) return;
+            if (string.IsNullOrEmpty(userName))
+            {
+                await Clients.Caller.SendAsync("configureLoginFields", userName);
+                return;
+            };
+
             var client = clients.FirstOrDefault(o => o.connectionId == connectionId);
-            if (client == null) return;
-            if (clients.Where(o => o.userName == userName).Count() > 0) return;            
+            if (client == null)
+            {
+                await Clients.Caller.SendAsync("configureLoginFields", userName);
+                return;
+            };
+
+            if (clients.Where(o => o.userName == userName).Count() > 0) {
+                await Clients.Caller.SendAsync("configureLoginFields", userName);
+                return;  
+            };
+   
             client.userName = userName;
             await Clients.All.SendAsync("userJoined", userName);
             await Clients.All.SendAsync("clients", clients.Where(o=>o.userName !=null).Select(o=>o.userName));
+
             /*  
                 Cem : 
-                Mesaj gönderildikten sonra ve grup kuruluktan sonra İnput alanları içinde sıfırlama yapılmalı
-                Burası için connection.on methodu yazılacak eğer birden fazla username geliyorsa o client e hata dönmeliyiz.
-                Bu hatada "This username already taken!" dönmeli.   
-                Giriş yapıldıktan sonra username text inin içi disabled olmalı
                 2- Otomatik olarak girilen grup için mesaj kısmı açık gelmeli şu an join grup dediğimizde gelmekte. 
+                enter butun buton ıcın aktıf olmalı
              */
 
             /*
