@@ -147,19 +147,19 @@ namespace signalR_server.Hubs
         {   
             if (string.IsNullOrEmpty(userName))
             {
-                await Clients.Caller.SendAsync("configureLoginFields", userName);
+                await Clients.Caller.SendAsync("checkUserName", userName);
                 return;
             };
 
             var client = clients.FirstOrDefault(o => o.connectionId == connectionId);
             if (client == null)
             {
-                await Clients.Caller.SendAsync("configureLoginFields", userName);
+                await Clients.Caller.SendAsync("checkUserName", userName);
                 return;
             };
 
             if (clients.Where(o => o.userName == userName).Count() > 0) {
-                await Clients.Caller.SendAsync("configureLoginFields", userName);
+                await Clients.Caller.SendAsync("checkUserName", userName);
                 return;  
             };
    
