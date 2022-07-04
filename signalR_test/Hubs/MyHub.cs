@@ -9,12 +9,15 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 
+
 namespace signalR_server.Hubs
 {
     public class MyHub : Hub
     {
         static List<User> clients = new List<User>();
         static List<Group> groups = new List<Group>();
+        private object groupsCount;
+
         // client will use SendMessageAsync to send messages
         // server will use receiveMessage(event on the client)
         public async Task SendMessageAsync(string message)
@@ -94,6 +97,11 @@ namespace signalR_server.Hubs
         public async Task AddGroup(string connectionId, string groupName)
         {
             var groupAlreadyExists = true;
+            if (groups.Count >= 6)
+            {
+                await Clients.All.SendAsync("groupLimitReached");
+                return;
+            }
             // if there isn't already a group with that groupName
             // create group and add the creator to the group
             if (!groups.Where(o => o.getGroupName() == groupName).Any())
@@ -169,7 +177,7 @@ namespace signalR_server.Hubs
 
             /*  
                 Cem : 
-                Otomatik olarak girilen grup için mesaj kısmı açık gelmeli şu an join grup dediğimizde gelmekte. 
+                tüm serverdaki grup sayısı maksimum 6 olmalı
              */
 
             /*
