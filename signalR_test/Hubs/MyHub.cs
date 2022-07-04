@@ -33,14 +33,14 @@ namespace signalR_server.Hubs
 
         public async Task SendMessageToGroupAsync(string message, string groupName)
         {
+            GroupMessageResponse resp = new GroupMessageResponse();
             // find username
-            var userName = "";
             foreach (User usr in clients)
             {
                 if (usr.connectionId == Context.ConnectionId)
-                    userName = usr.userName;
+                    resp = new GroupMessageResponse(message, Context.ConnectionId, usr.userName, groupName);
             }
-            await Clients.Group(groupName).SendAsync("receiveGroupMessage", message, Context.ConnectionId, userName);
+            await Clients.Group(groupName).SendAsync("receiveGroupMessage", JsonConvert.SerializeObject(resp));
         }
 
         // when a client connects to the server this method awakes
