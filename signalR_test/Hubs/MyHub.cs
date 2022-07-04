@@ -155,19 +155,19 @@ namespace signalR_server.Hubs
         {   
             if (string.IsNullOrEmpty(userName))
             {
-                await Clients.Caller.SendAsync("configureLoginFields", userName);
+                await Clients.Caller.SendAsync("checkUserName", userName);
                 return;
             };
 
             var client = clients.FirstOrDefault(o => o.connectionId == connectionId);
             if (client == null)
             {
-                await Clients.Caller.SendAsync("configureLoginFields", userName);
+                await Clients.Caller.SendAsync("checkUserName", userName);
                 return;
             };
 
             if (clients.Where(o => o.userName == userName).Count() > 0) {
-                await Clients.Caller.SendAsync("configureLoginFields", userName);
+                await Clients.Caller.SendAsync("checkUserName", userName);
                 return;  
             };
    
@@ -175,6 +175,7 @@ namespace signalR_server.Hubs
             await Clients.All.SendAsync("userJoined", userName);
             await Clients.All.SendAsync("clients", clients.Where(o=>o.userName !=null).Select(o=>o.userName));
 
+<<<<<<< HEAD
             /*  
                 Cem : 
                 tüm serverdaki grup sayısı maksimum 6 olmalı
@@ -186,6 +187,9 @@ namespace signalR_server.Hubs
                 2- Join grup dendiğinde açılan mesaj kutusu o seçilen grubun mesajlarına özgü olmalı.
                 3- Response içerisinde members gitmemekte  -- JSON ile alakalı olabilir. Client tarafında JSON.Parse() ?
              */
+=======
+           
+>>>>>>> 02f24c2e49008974edfb2483d3ed14882bb6de98
         }
 
     }
