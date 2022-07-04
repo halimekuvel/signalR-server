@@ -16,7 +16,6 @@ namespace signalR_server.Hubs
     {
         static List<User> clients = new List<User>();
         static List<Group> groups = new List<Group>();
-        private object groupsCount;
 
         // client will use SendMessageAsync to send messages
         // server will use receiveMessage(event on the client)
@@ -65,9 +64,9 @@ namespace signalR_server.Hubs
         {
             // notify the users that a client has left
             // userLeft : an event in the client
-
-            User disconUser = clients.Find(x => String.Equals(x.connectionId, Context.ConnectionId));
-            clients.Remove(disconUser); // remove from the clients list
+            
+            User disconnectUser = clients.Find(x => String.Equals(x.connectionId, Context.ConnectionId));
+            clients.Remove(disconnectUser); // remove from the clients list
 
             List<string> userNames = new List<string>();
             foreach (User usr in clients)
@@ -89,10 +88,8 @@ namespace signalR_server.Hubs
                 }
             }
             await Clients.All.SendAsync("clients", userNames);
-            await Clients.All.SendAsync("userLeft", Context.ConnectionId);
+            await Clients.All.SendAsync("userLeft", disconnectUser.userName);
         }
-
-        
 
         public async Task AddGroup(string connectionId, string groupName)
         {
@@ -173,12 +170,15 @@ namespace signalR_server.Hubs
    
             client.userName = userName;
             await Clients.All.SendAsync("userJoined", userName);
+
             await Clients.All.SendAsync("clients", clients.Where(o=>o.userName !=null).Select(o=>o.userName));
 
-<<<<<<< HEAD
+
+
             /*  
                 Cem : 
-                tüm serverdaki grup sayısı maksimum 6 olmalı
+                1- kullanıcı cıkış yaptıgında username bilgisi üstte gözükmeli  (şu an connectionId gozukuyor)
+                2- kullanıcı sayfayı yenıledıgınde sistemden çıkış yapıp tekrar giriş yapmakta, bu durumu engellemek amaclı kullanıcı sayfayı yenilediğinde connection
              */
 
             /*
@@ -187,9 +187,6 @@ namespace signalR_server.Hubs
                 2- Join grup dendiğinde açılan mesaj kutusu o seçilen grubun mesajlarına özgü olmalı.
                 3- Response içerisinde members gitmemekte  -- JSON ile alakalı olabilir. Client tarafında JSON.Parse() ?
              */
-=======
-           
->>>>>>> 02f24c2e49008974edfb2483d3ed14882bb6de98
         }
 
     }

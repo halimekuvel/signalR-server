@@ -7,6 +7,8 @@ namespace signalR_server.Models
 {
     public class User
     {
+        internal object connectionName;
+
         public string userName { get; set; }
         public string connectionId { get; set; }
         public User(string connectionId, string userName)
