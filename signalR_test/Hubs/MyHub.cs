@@ -16,7 +16,6 @@ namespace signalR_server.Hubs
     {
         static List<User> clients = new List<User>();
         static List<Group> groups = new List<Group>();
-
         // client will use SendMessageAsync to send messages
         // server will use receiveMessage(event on the client)
         public async Task SendMessageAsync(string message)
@@ -64,10 +63,10 @@ namespace signalR_server.Hubs
         {
             // notify the users that a client has left
             // userLeft : an event in the client
-
+            await Task.Delay(3000);
+            
             User disconnectUser = clients.Find(x => String.Equals(x.connectionId, Context.ConnectionId));
             clients.Remove(disconnectUser); // remove from the clients list
-
             List<string> userNames = new List<string>();
             foreach (User usr in clients)
             {
