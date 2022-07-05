@@ -76,6 +76,7 @@ namespace signalR_server.Hubs
                     userNames.Add(usr.userName);
             }
             //userNames = clients.Where(o => o.userName != null).Select(o=>o.userName).ToList();
+            // Cem tarafından bakılıp kontrol edilecek
             // delete the user from the groups
             foreach (Group grp in groups)
             {
