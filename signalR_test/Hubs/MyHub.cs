@@ -16,7 +16,6 @@ namespace signalR_server.Hubs
     {
         static List<User> clients = new List<User>();
         static List<Group> groups = new List<Group>();
-
         // client will use SendMessageAsync to send messages
         // server will use receiveMessage(event on the client)
         public async Task SendMessageAsync(string message)
@@ -66,27 +65,28 @@ namespace signalR_server.Hubs
         {
             // notify the users that a client has left
             // userLeft : an event in the client
+            await Task.Delay(3000);
             
             User disconnectUser = clients.Find(x => String.Equals(x.connectionId, Context.ConnectionId));
             clients.Remove(disconnectUser); // remove from the clients list
-
             List<string> userNames = new List<string>();
             foreach (User usr in clients)
             {
                 if (usr.userName != null)
                     userNames.Add(usr.userName);
             }
+            //userNames = clients.Where(o => o.userName != null).Select(o=>o.userName).ToList();
             // delete the user from the groups
-            foreach(Group grp in groups)
+            foreach (Group grp in groups)
             {
-                foreach(User usr in grp.members)
+                foreach (User usr in grp.members)
                 {
-                    if(usr.connectionId == Context.ConnectionId)
+                    if (usr.connectionId == Context.ConnectionId)
                     {
                         grp.members.Remove(usr);
                         break;
                     }
-                    
+
                 }
             }
             await Clients.All.SendAsync("clients", userNames);
@@ -136,7 +136,7 @@ namespace signalR_server.Hubs
                 {
                     ClientId = connectionId,
                     GroupName = groupName,
-                    members = theGroup.members,     
+                    members = theGroup.members,
                     ClienInGroup = theGroup.members.Contains(usr)
                 };
             }
@@ -151,7 +151,7 @@ namespace signalR_server.Hubs
         }
 
         public async Task AddUserName(string userName, string connectionId)
-        {   
+        {
             if (string.IsNullOrEmpty(userName))
             {
                 await Clients.Caller.SendAsync("checkUserName", userName);
@@ -165,15 +165,16 @@ namespace signalR_server.Hubs
                 return;
             };
 
-            if (clients.Where(o => o.userName == userName).Count() > 0) {
+            if (clients.Where(o => o.userName == userName).Count() > 0)
+            {
                 await Clients.Caller.SendAsync("checkUserName", userName);
-                return;  
+                return;
             };
-   
+
             client.userName = userName;
             await Clients.All.SendAsync("userJoined", userName);
 
-            await Clients.All.SendAsync("clients", clients.Where(o=>o.userName !=null).Select(o=>o.userName));
+            await Clients.All.SendAsync("clients", clients.Where(o => o.userName != null).Select(o => o.userName));
 
 
 
