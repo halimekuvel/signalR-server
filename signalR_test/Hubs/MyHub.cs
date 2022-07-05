@@ -64,7 +64,7 @@ namespace signalR_server.Hubs
         {
             // notify the users that a client has left
             // userLeft : an event in the client
-            
+
             User disconnectUser = clients.Find(x => String.Equals(x.connectionId, Context.ConnectionId));
             clients.Remove(disconnectUser); // remove from the clients list
 
@@ -74,17 +74,18 @@ namespace signalR_server.Hubs
                 if (usr.userName != null)
                     userNames.Add(usr.userName);
             }
+            //userNames = clients.Where(o => o.userName != null).Select(o=>o.userName).ToList();
             // delete the user from the groups
-            foreach(Group grp in groups)
+            foreach (Group grp in groups)
             {
-                foreach(User usr in grp.members)
+                foreach (User usr in grp.members)
                 {
-                    if(usr.connectionId == Context.ConnectionId)
+                    if (usr.connectionId == Context.ConnectionId)
                     {
                         grp.members.Remove(usr);
                         break;
                     }
-                    
+
                 }
             }
             await Clients.All.SendAsync("clients", userNames);
@@ -134,7 +135,7 @@ namespace signalR_server.Hubs
                 {
                     ClientId = connectionId,
                     GroupName = groupName,
-                    members = theGroup.members,     
+                    members = theGroup.members,
                     ClienInGroup = theGroup.members.Contains(usr)
                 };
             }
@@ -149,7 +150,7 @@ namespace signalR_server.Hubs
         }
 
         public async Task AddUserName(string userName, string connectionId)
-        {   
+        {
             if (string.IsNullOrEmpty(userName))
             {
                 await Clients.Caller.SendAsync("checkUserName", userName);
@@ -163,15 +164,16 @@ namespace signalR_server.Hubs
                 return;
             };
 
-            if (clients.Where(o => o.userName == userName).Count() > 0) {
+            if (clients.Where(o => o.userName == userName).Count() > 0)
+            {
                 await Clients.Caller.SendAsync("checkUserName", userName);
-                return;  
+                return;
             };
-   
+
             client.userName = userName;
             await Clients.All.SendAsync("userJoined", userName);
 
-            await Clients.All.SendAsync("clients", clients.Where(o=>o.userName !=null).Select(o=>o.userName));
+            await Clients.All.SendAsync("clients", clients.Where(o => o.userName != null).Select(o => o.userName));
 
 
 
