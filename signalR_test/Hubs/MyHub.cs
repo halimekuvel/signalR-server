@@ -32,16 +32,21 @@ namespace signalR_server.Hubs
 
         public async Task SendMessageToGroupAsync(string message, string groupName)
         {
-            
+
             GroupMessageResponse resp = new GroupMessageResponse();
             // find username
             foreach (User usr in clients)
             {
                 if (usr.connectionId == Context.ConnectionId)
-                    resp = new GroupMessageResponse(message, Context.ConnectionId, usr.userName, groupName);
+                    resp = new GroupMessageResponse { message = message, connectionId = Context.ConnectionId, sender = usr.userName, groupName = groupName };
             }
             groups.Where(o => o.getGroupName() == groupName).FirstOrDefault().messages.Add(resp);
             await Clients.Group(groupName).SendAsync("receiveGroupMessage", JsonConvert.SerializeObject(resp));
+        }
+
+        public async Task GetPrevGroupMsgs(string groupName)
+        {
+            await Clients.Caller.SendAsync("receivePrevGroupMsgs", JsonConvert.SerializeObject(groups.Where(o => o.getGroupName() == groupName).FirstOrDefault().messages));
         }
 
         // when a client connects to the server this method awakes
@@ -66,7 +71,7 @@ namespace signalR_server.Hubs
             // notify the users that a client has left
             // userLeft : an event in the client
             await Task.Delay(3000);
-            
+
             User disconnectUser = clients.Find(x => String.Equals(x.connectionId, Context.ConnectionId));
             clients.Remove(disconnectUser); // remove from the clients list
             List<string> userNames = new List<string>();
@@ -120,6 +125,7 @@ namespace signalR_server.Hubs
         public async Task JoinGroup(string connectionId, string groupName)
         {
             GroupResponse response = new GroupResponse();
+
             string userName = "";
             var theGroup = groups.First();
             if (groups.Where(o => o.getGroupName() == groupName).Any()) // if there's a group with that groupName :: aslında gerekli degil ama her ihtimale karsı
@@ -127,19 +133,23 @@ namespace signalR_server.Hubs
                 User usr = clients.Where(o => o.connectionId == connectionId).FirstOrDefault();
                 userName = usr.userName;
                 theGroup = groups.Where(o => o.getGroupName() == groupName).FirstOrDefault();
-                // if the user is not already in the group, add the user to the group
-                if (!theGroup.members.Contains(usr))
-                {
-                    await Groups.AddToGroupAsync(connectionId, groupName);
-                    theGroup.members.Add(usr);
-                }
+
                 response = new GroupResponse
                 {
                     ClientId = connectionId,
                     GroupName = groupName,
                     members = theGroup.members,
-                    ClienInGroup = theGroup.members.Contains(usr)
+                    ClienInGroup = false
                 };
+
+                // if the user is not already in the group, add the user to the group 
+                if (!theGroup.members.Contains(usr))
+                {
+                    await Groups.AddToGroupAsync(connectionId, groupName);
+                    theGroup.members.Add(usr);
+                    response.ClienInGroup = true;
+                }
+
             }
 
             await Clients.Caller.SendAsync("checkJoinGroup", JsonConvert.SerializeObject(response));
