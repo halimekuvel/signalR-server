@@ -20,5 +20,6 @@ namespace signalR_server.Response
             this.groupName = groupName;
         }
         public GroupMessageResponse() { }
+        //Halime Düzenleme gerekecek
     }
 }
