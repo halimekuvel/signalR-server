@@ -9,6 +9,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 
+
 namespace signalR_server.Hubs
 {
     public class MyHub : Hub
@@ -31,14 +32,16 @@ namespace signalR_server.Hubs
 
         public async Task SendMessageToGroupAsync(string message, string groupName)
         {
+            
+            GroupMessageResponse resp = new GroupMessageResponse();
             // find username
-            var userName = "";
             foreach (User usr in clients)
             {
                 if (usr.connectionId == Context.ConnectionId)
-                    userName = usr.userName;
+                    resp = new GroupMessageResponse(message, Context.ConnectionId, usr.userName, groupName);
             }
-            await Clients.Group(groupName).SendAsync("receiveGroupMessage", message, Context.ConnectionId, userName);
+            groups.Where(o => o.getGroupName() == groupName).FirstOrDefault().messages.Add(resp);
+            await Clients.Group(groupName).SendAsync("receiveGroupMessage", JsonConvert.SerializeObject(resp));
         }
 
         // when a client connects to the server this method awakes
@@ -62,25 +65,42 @@ namespace signalR_server.Hubs
         {
             // notify the users that a client has left
             // userLeft : an event in the client
-
-            User disconUser = clients.Find(x => String.Equals(x.connectionId, Context.ConnectionId));
-            clients.Remove(disconUser); // remove from the clients list
-
+            await Task.Delay(3000);
+            
+            User disconnectUser = clients.Find(x => String.Equals(x.connectionId, Context.ConnectionId));
+            clients.Remove(disconnectUser); // remove from the clients list
             List<string> userNames = new List<string>();
             foreach (User usr in clients)
             {
                 if (usr.userName != null)
                     userNames.Add(usr.userName);
             }
-            await Clients.All.SendAsync("clients", userNames);
-            await Clients.All.SendAsync("userLeft", Context.ConnectionId);
-        }
+            //userNames = clients.Where(o => o.userName != null).Select(o=>o.userName).ToList();
+            // delete the user from the groups
+            foreach (Group grp in groups)
+            {
+                foreach (User usr in grp.members)
+                {
+                    if (usr.connectionId == Context.ConnectionId)
+                    {
+                        grp.members.Remove(usr);
+                        break;
+                    }
 
-        
+                }
+            }
+            await Clients.All.SendAsync("clients", userNames);
+            await Clients.All.SendAsync("userLeft", disconnectUser.userName);
+        }
 
         public async Task AddGroup(string connectionId, string groupName)
         {
             var groupAlreadyExists = true;
+            if (groups.Count >= 6)
+            {
+                await Clients.All.SendAsync("groupLimitReached");
+                return;
+            }
             // if there isn't already a group with that groupName
             // create group and add the creator to the group
             if (!groups.Where(o => o.getGroupName() == groupName).Any())
@@ -116,12 +136,12 @@ namespace signalR_server.Hubs
                 {
                     ClientId = connectionId,
                     GroupName = groupName,
-                    members = theGroup.members,     
+                    members = theGroup.members,
                     ClienInGroup = theGroup.members.Contains(usr)
                 };
             }
 
-            await Clients.Caller.SendAsync("checkJoinGroup", JsonConvert.SerializeObject(response), theGroup.members);
+            await Clients.Caller.SendAsync("checkJoinGroup", JsonConvert.SerializeObject(response));
             await Clients.Group(groupName).SendAsync("notificationJoinGroup", userName);
         }
 
@@ -131,21 +151,37 @@ namespace signalR_server.Hubs
         }
 
         public async Task AddUserName(string userName, string connectionId)
-        {   
-            if (string.IsNullOrEmpty(userName)) return;
+        {
+            if (string.IsNullOrEmpty(userName))
+            {
+                await Clients.Caller.SendAsync("checkUserName", userName);
+                return;
+            };
+
             var client = clients.FirstOrDefault(o => o.connectionId == connectionId);
-            if (client == null) return;
-            if (clients.Where(o => o.userName == userName).Count() > 0) return;            
+            if (client == null)
+            {
+                await Clients.Caller.SendAsync("checkUserName", userName);
+                return;
+            };
+
+            if (clients.Where(o => o.userName == userName).Count() > 0)
+            {
+                await Clients.Caller.SendAsync("checkUserName", userName);
+                return;
+            };
+
             client.userName = userName;
             await Clients.All.SendAsync("userJoined", userName);
-            await Clients.All.SendAsync("clients", clients.Where(o=>o.userName !=null).Select(o=>o.userName));
+
+            await Clients.All.SendAsync("clients", clients.Where(o => o.userName != null).Select(o => o.userName));
+
+
+
             /*  
                 Cem : 
-                Mesaj gönderildikten sonra ve grup kuruluktan sonra İnput alanları içinde sıfırlama yapılmalı
-                Burası için connection.on methodu yazılacak eğer birden fazla username geliyorsa o client e hata dönmeliyiz.
-                Bu hatada "This username already taken!" dönmeli.   
-                Giriş yapıldıktan sonra username text inin içi disabled olmalı
-                2- Otomatik olarak girilen grup için mesaj kısmı açık gelmeli şu an join grup dediğimizde gelmekte. 
+                1- kullanıcı cıkış yaptıgında username bilgisi üstte gözükmeli  (şu an connectionId gozukuyor)
+                2- kullanıcı sayfayı yenıledıgınde sistemden çıkış yapıp tekrar giriş yapmakta, bu durumu engellemek amaclı kullanıcı sayfayı yenilediğinde connection
              */
 
             /*
