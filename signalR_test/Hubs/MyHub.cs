@@ -33,6 +33,7 @@ namespace signalR_server.Hubs
 
         public async Task SendMessageToGroupAsync(string message, string groupName)
         {
+            
             GroupMessageResponse resp = new GroupMessageResponse();
             // find username
             foreach (User usr in clients)
@@ -40,6 +41,7 @@ namespace signalR_server.Hubs
                 if (usr.connectionId == Context.ConnectionId)
                     resp = new GroupMessageResponse(message, Context.ConnectionId, usr.userName, groupName);
             }
+            groups.Where(o => o.getGroupName() == groupName).FirstOrDefault().messages.Add(resp);
             await Clients.Group(groupName).SendAsync("receiveGroupMessage", JsonConvert.SerializeObject(resp));
         }
 
