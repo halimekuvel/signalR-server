@@ -27,12 +27,13 @@ namespace signalR_server.Hubs
                 if (usr.connectionId == Context.ConnectionId)
                     userName = usr.userName;
             }
+            //userName = clients.Where(x => x.connectionId == Context.ConnectionId).FirstOrDefault().userName;
             await Clients.All.SendAsync("receiveMessage", message, Context.ConnectionId, userName);
         }
 
         public async Task SendMessageToGroupAsync(string message, string groupName)
         {
-            
+
             GroupMessageResponse resp = new GroupMessageResponse();
             // find username
             foreach (User usr in clients)
@@ -66,17 +67,16 @@ namespace signalR_server.Hubs
             // notify the users that a client has left
             // userLeft : an event in the client
             await Task.Delay(3000);
-            
-            User disconnectUser = clients.Find(x => String.Equals(x.connectionId, Context.ConnectionId));
+
+            User disconnectUser = clients.FirstOrDefault(x => x.connectionId == Context.ConnectionId);
             clients.Remove(disconnectUser); // remove from the clients list
             List<string> userNames = new List<string>();
-            foreach (User usr in clients)
-            {
-                if (usr.userName != null)
-                    userNames.Add(usr.userName);
-            }
-            //userNames = clients.Where(o => o.userName != null).Select(o=>o.userName).ToList();
-            // Cem tarafından bakılıp kontrol edilecek
+            //foreach (User usr in clients)
+            //{
+            //    if (usr.userName != null)
+            //        userNames.Add(usr.userName);
+            //}
+            userNames = clients.Where(o => o.userName != null).Select(o => o.userName).ToList();
             // delete the user from the groups
             foreach (Group grp in groups)
             {
@@ -91,7 +91,11 @@ namespace signalR_server.Hubs
                 }
             }
             await Clients.All.SendAsync("clients", userNames);
-            await Clients.All.SendAsync("userLeft", disconnectUser.userName);
+            if (disconnectUser != null && disconnectUser.userName != null)
+                await Clients.All.SendAsync("userLeft", disconnectUser.userName);
+
+
+            //await Clients.All.SendAsync("userLeft", disconnectUser.userName);
         }
 
         public async Task AddGroup(string connectionId, string groupName)
@@ -173,7 +177,8 @@ namespace signalR_server.Hubs
             };
 
             client.userName = userName;
-            await Clients.All.SendAsync("userJoined", userName);
+
+            await Clients.Caller.SendAsync("userJoined", userName);
 
             await Clients.All.SendAsync("clients", clients.Where(o => o.userName != null).Select(o => o.userName));
 
@@ -181,8 +186,7 @@ namespace signalR_server.Hubs
 
             /*  
                 Cem : 
-                1- kullanıcı cıkış yaptıgında username bilgisi üstte gözükmeli  (şu an connectionId gozukuyor)
-                2- kullanıcı sayfayı yenıledıgınde sistemden çıkış yapıp tekrar giriş yapmakta, bu durumu engellemek amaclı kullanıcı sayfayı yenilediğinde connection
+               
              */
 
             /*
