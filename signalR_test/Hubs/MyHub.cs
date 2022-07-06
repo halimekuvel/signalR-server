@@ -158,13 +158,40 @@ namespace signalR_server.Hubs
 
             await Clients.Caller.SendAsync("checkJoinGroup", JsonConvert.SerializeObject(response));
             await Clients.Group(groupName).SendAsync("notificationJoinGroup", userName);
+        }        
+        public async Task LeaveGroup(string connectionId, string groupName)
+        {
+            GroupResponse response = new GroupResponse();
+            
+            string userName = "";
+            var theGroup = groups.First();
+            if (groups.Where(o => o.getGroupName() == groupName).Any()) // if there's a group with that groupName :: aslında gerekli degil ama her ihtimale karsı
+            {
+                User usr = clients.Where(o => o.connectionId == connectionId).FirstOrDefault();
+                userName = usr.userName;
+                theGroup = groups.Where(o => o.getGroupName() == groupName).FirstOrDefault();
+
+                response = new GroupResponse
+                {
+                    ClientId = connectionId,
+                    GroupName = groupName,
+                    members = theGroup.members,
+                    ClienInGroup = false
+                };
+
+                if (!theGroup.members.Contains(usr))
+                {
+                    await Groups.RemoveFromGroupAsync(connectionId, groupName);
+                    theGroup.members.Remove(usr);
+                    response.ClienInGroup = true;
+                }
+
+            }
+
+            await Clients.Caller.SendAsync("checkLeaveGroup", JsonConvert.SerializeObject(response));
+            await Clients.Group(groupName).SendAsync("notificationJoinGroup", userName);
         }
 
-        public async Task RemoveGroup(string connectionId, string groupName)
-        {
-            // groups litesinden de silinmeli
-            await Groups.RemoveFromGroupAsync(connectionId, groupName);
-        }
 
         public async Task AddUserName(string userName, string connectionId)
         {
@@ -197,8 +224,7 @@ namespace signalR_server.Hubs
 
             /*  
                 Cem : 
-               1.Gruba girildiğinde modal açılmal. Açılan modal içinde mesaj gönderme işlemleri yapılabilmeli.
-               2.Gruba girildikten sonra leave group butonu oluşturulmalı.
+               1.Gruba girildikten sonra leave group butonu oluşturulmalı.
              */
 
             /*
