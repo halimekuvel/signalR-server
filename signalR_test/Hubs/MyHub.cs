@@ -73,11 +73,7 @@ namespace signalR_server.Hubs
             // userLeft : an event in the client
             await Task.Delay(3000);
 
-<<<<<<< HEAD
             User disconnectUser = clients.FirstOrDefault(x => x.connectionId == Context.ConnectionId);
-=======
-            User disconnectUser = clients.Find(x => String.Equals(x.connectionId, Context.ConnectionId));
->>>>>>> 366e7ddc2f5f60fca8acbef00c35a587b62ed19a
             clients.Remove(disconnectUser); // remove from the clients list
             List<string> userNames = new List<string>();
             //foreach (User usr in clients)
@@ -166,6 +162,7 @@ namespace signalR_server.Hubs
 
         public async Task RemoveGroup(string connectionId, string groupName)
         {
+            // groups litesinden de silinmeli
             await Groups.RemoveFromGroupAsync(connectionId, groupName);
         }
 
@@ -200,14 +197,15 @@ namespace signalR_server.Hubs
 
             /*  
                 Cem : 
-               
+               1.Gruba girildiğinde modal açılmal. Açılan modal içinde mesaj gönderme işlemleri yapılabilmeli.
+               2.Gruba girildikten sonra leave group butonu oluşturulmalı.
              */
 
             /*
                 Halime : 
-                1- Kurulan gruba otomatik olarak üye olunmakta üye olunan grubun adı yeşil yanmalı ve yeni üye olunacak grubun da arka planı yeşil olmalı.
-                2- Join grup dendiğinde açılan mesaj kutusu o seçilen grubun mesajlarına özgü olmalı.
-                3- Response içerisinde members gitmemekte  -- JSON ile alakalı olabilir. Client tarafında JSON.Parse() ?
+                1.Join group butonu gruba girildiğinde kalksın. Girilmemiş gruba tıklandığında gözükmeli.
+                2.Yeni mesaj geldiğinde grubun üstünde bildirim oluşmalı
+
              */
         }
 
