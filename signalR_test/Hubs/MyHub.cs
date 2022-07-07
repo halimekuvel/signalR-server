@@ -106,7 +106,7 @@ namespace signalR_server.Hubs
         public async Task AddGroup(string connectionId, string groupName)
         {
             var groupAlreadyExists = true;
-            if (groups.Count >= 6)
+            if (groups.Count >= (int)GroupEnum.maxGroupCount)
             {
                 await Clients.All.SendAsync("groupLimitReached");
                 return;
