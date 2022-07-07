@@ -179,7 +179,7 @@ namespace signalR_server.Hubs
                     ClienInGroup = false
                 };
 
-                if (!theGroup.members.Contains(usr))
+                if (theGroup.members.Contains(usr))
                 {
                     await Groups.RemoveFromGroupAsync(connectionId, groupName);
                     theGroup.members.Remove(usr);
