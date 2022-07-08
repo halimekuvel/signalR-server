@@ -12,14 +12,5 @@ namespace signalR_server.Response
         public string sender;
         public string groupName;
 
-        public GroupMessageResponse(string message, string connectionId, string sender, string groupName)
-        {
-            this.message = message;
-            this.connectionId = connectionId;
-            this.sender = sender;
-            this.groupName = groupName;
-        }
-        public GroupMessageResponse() { }
-        //Halime Düzenleme gerekecek
     }
 }

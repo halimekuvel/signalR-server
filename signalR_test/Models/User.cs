@@ -7,7 +7,8 @@ namespace signalR_server.Models
 {
     public class User
     {
-        internal object connectionName;
+        
+        
 
         public string userName { get; set; }
         public string connectionId { get; set; }
@@ -15,10 +16,13 @@ namespace signalR_server.Models
         {
             this.connectionId = connectionId;
             this.userName = userName;
+            
+            
         }
         public User(string connectionId)
         {
             this.connectionId = connectionId;
         }
+        
     }
 }
