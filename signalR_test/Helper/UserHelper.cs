@@ -10,6 +10,6 @@ namespace signalR_server.Helper
     public static class UserHelper
     {
         public static User FindUser(List<User> clients, string connectionId)
-        { return clients.Where(x => x.connectionId == connectionId).FirstOrDefault(); }
+        { return clients.Where(x => x.ConnectionId == connectionId).FirstOrDefault(); }
     }
 }
