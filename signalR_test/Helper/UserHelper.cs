@@ -1,4 +1,5 @@
-﻿using signalR_server.Models;
+﻿using signalR_server.Hubs;
+using signalR_server.Models;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -8,6 +9,7 @@ namespace signalR_server.Helper
 {
     public static class UserHelper
     {
-        public static User FindUserName(string connectionId,string Username) { return new User("",""); }
+        public static User FindUser(List<User> clients, string connectionId)
+        { return clients.Where(x => x.connectionId == connectionId).FirstOrDefault(); }
     }
 }

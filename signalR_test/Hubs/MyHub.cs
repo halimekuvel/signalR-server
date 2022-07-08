@@ -1,5 +1,6 @@
 ﻿using Microsoft.AspNetCore.SignalR;
 using Newtonsoft.Json;
+using signalR_server.Helper;
 using signalR_server.Interfaces;
 using signalR_server.Interfaces.Enums;
 using signalR_server.Models;
@@ -14,8 +15,8 @@ namespace signalR_server.Hubs
 {
     public class MyHub : Hub
     {
-        static List<User> clients = new List<User>();
-        static List<Group> groups = new List<Group>();
+        public static List<User> clients = new List<User>();
+        public static List<Group> groups = new List<Group>();
         // client will use SendMessageAsync to send messages
         // server will use receiveMessage(event on the client)
         public async Task SendMessageAsync(string message)
@@ -24,9 +25,11 @@ namespace signalR_server.Hubs
             var userName = "";
             foreach (User usr in clients)
             {
-                if (usr.connectionId == Context.ConnectionId)
-                    userName = usr.userName;
+                if (usr.ConnectionId == Context.ConnectionId)
+                    userName = usr.Username;
             }
+            User user = UserHelper.FindUser(clients, Context.ConnectionId);
+            
             //userName = clients.Where(x => x.connectionId == Context.ConnectionId).FirstOrDefault().userName;
             await Clients.All.SendAsync("receiveMessage", message, Context.ConnectionId, userName);
         }
@@ -38,8 +41,8 @@ namespace signalR_server.Hubs
             // find username
             foreach (User usr in clients)
             {
-                if (usr.connectionId == Context.ConnectionId)
-                    resp = new GroupMessageResponse { message = message, connectionId = Context.ConnectionId, sender = usr.userName, groupName = groupName };
+                if (usr.ConnectionId == Context.ConnectionId)
+                    resp = new GroupMessageResponse { message = message, connectionId = Context.ConnectionId, sender = usr.Username, groupName = groupName };
             }
             groups.Where(o => o.getGroupName() == groupName).FirstOrDefault().messages.Add(resp);
             await Clients.Group(groupName).SendAsync("receiveGroupMessage", JsonConvert.SerializeObject(resp));
@@ -73,7 +76,7 @@ namespace signalR_server.Hubs
             // userLeft : an event in the client
             await Task.Delay(3000);
 
-            User disconnectUser = clients.FirstOrDefault(x => x.connectionId == Context.ConnectionId);
+            User disconnectUser = clients.FirstOrDefault(x => x.ConnectionId == Context.ConnectionId);
             clients.Remove(disconnectUser); // remove from the clients list
             List<string> userNames = new List<string>();
             //foreach (User usr in clients)
@@ -81,13 +84,13 @@ namespace signalR_server.Hubs
             //    if (usr.userName != null)
             //        userNames.Add(usr.userName);
             //}
-            userNames = clients.Where(o => o.userName != null).Select(o => o.userName).ToList();
+            userNames = clients.Where(o => o.Username != null).Select(o => o.Username).ToList();
             // delete the user from the groups
             foreach (Group grp in groups)
             {
                 foreach (User usr in grp.members)
                 {
-                    if (usr.connectionId == Context.ConnectionId)
+                    if (usr.ConnectionId == Context.ConnectionId)
                     {
                         grp.members.Remove(usr);
                         break;
@@ -96,10 +99,8 @@ namespace signalR_server.Hubs
                 }
             }
             await Clients.All.SendAsync("clients", userNames);
-            if (disconnectUser != null && disconnectUser.userName != null)
-                await Clients.All.SendAsync("userLeft", disconnectUser.userName);
-
-
+            if (disconnectUser != null && disconnectUser.Username != null)
+                await Clients.All.SendAsync("userLeft", disconnectUser.Username);
             //await Clients.All.SendAsync("userLeft", disconnectUser.userName);
         }
 
@@ -118,7 +119,7 @@ namespace signalR_server.Hubs
                 groupAlreadyExists = false;
 
                 await Groups.AddToGroupAsync(connectionId, groupName);
-                User User = clients.Where(o => o.connectionId == connectionId).FirstOrDefault();
+                User User = clients.Where(o => o.ConnectionId == connectionId).FirstOrDefault();
                 Group newGroup = new Group(groupName, connectionId);
                 newGroup.addMember(User);
                 groups.Add(newGroup);
@@ -134,8 +135,8 @@ namespace signalR_server.Hubs
             var theGroup = groups.First();
             if (groups.Where(o => o.getGroupName() == groupName).Any()) // if there's a group with that groupName :: aslında gerekli degil ama her ihtimale karsı
             {
-                User usr = clients.Where(o => o.connectionId == connectionId).FirstOrDefault();
-                userName = usr.userName;
+                User usr = clients.Where(o => o.ConnectionId == connectionId).FirstOrDefault();
+                userName = usr.Username;
                 theGroup = groups.Where(o => o.getGroupName() == groupName).FirstOrDefault();
 
                 response = new GroupResponse
@@ -158,27 +159,18 @@ namespace signalR_server.Hubs
 
             await Clients.Caller.SendAsync("checkJoinGroup", JsonConvert.SerializeObject(response));
             await Clients.Group(groupName).SendAsync("notificationJoinGroup", userName);
-        }        
+        }
         public async Task LeaveGroup(string connectionId, string groupName)
         {
             GroupResponse response = new GroupResponse();
-            
+
             string userName = "";
             var theGroup = groups.First();
             if (groups.Where(o => o.getGroupName() == groupName).Any()) // if there's a group with that groupName :: aslında gerekli degil ama her ihtimale karsı
             {
-                User usr = clients.Where(o => o.connectionId == connectionId).FirstOrDefault();
-                userName = usr.userName;
+                User usr = clients.Where(o => o.ConnectionId == connectionId).FirstOrDefault();
+                userName = usr.Username;
                 theGroup = groups.Where(o => o.getGroupName() == groupName).FirstOrDefault();
-
-                response = new GroupResponse
-                {
-                    ClientId = connectionId,
-                    GroupName = groupName,
-                    members = theGroup.members,
-                    ClienInGroup = false
-                };
-
                 if (theGroup.members.Contains(usr))
                 {
                     await Groups.RemoveFromGroupAsync(connectionId, groupName);
@@ -188,7 +180,7 @@ namespace signalR_server.Hubs
 
             }
 
-            await Clients.Caller.SendAsync("checkLeaveGroup", JsonConvert.SerializeObject(response));
+            await Clients.Caller.SendAsync("checkLeaveGroup");
             await Clients.Group(groupName).SendAsync("notificationJoinGroup", userName);
         }
 
@@ -201,24 +193,24 @@ namespace signalR_server.Hubs
                 return;
             };
 
-            var client = clients.FirstOrDefault(o => o.connectionId == connectionId);
+            var client = clients.FirstOrDefault(o => o.ConnectionId == connectionId);
             if (client == null)
             {
                 await Clients.Caller.SendAsync("checkUserName", userName);
                 return;
             };
 
-            if (clients.Where(o => o.userName == userName).Count() > 0)
+            if (clients.Where(o => o.Username == userName).Count() > 0)
             {
                 await Clients.Caller.SendAsync("checkUserName", userName);
                 return;
             };
 
-            client.userName = userName;
+            client.Username = userName;
 
             await Clients.Caller.SendAsync("userJoined", userName);
 
-            await Clients.All.SendAsync("clients", clients.Where(o => o.userName != null).Select(o => o.userName));
+            await Clients.All.SendAsync("clients", clients.Where(o => o.Username != null).Select(o => o.Username));
 
 
 
