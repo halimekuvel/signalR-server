@@ -14,10 +14,10 @@ namespace signalR_server.Models
             this.ConnectionId = ConnectionId;
             this.Username = Username;
         }
+        public User() { }
         public User(string ConnectionId)
         {
             this.ConnectionId = ConnectionId;
-        }
-        
+        }      
     }
 }

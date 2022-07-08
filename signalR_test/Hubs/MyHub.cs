@@ -114,15 +114,11 @@ namespace signalR_server.Hubs
             }
             // if there isn't already a group with that groupName
             // create group and add the creator to the group
-            if (!groups.Where(o => o.getGroupName() == groupName).Any())
+            if (!GroupHelper.GroupExists(groups, groupName))
             {
                 groupAlreadyExists = false;
-
                 await Groups.AddToGroupAsync(connectionId, groupName);
-                User User = clients.Where(o => o.ConnectionId == connectionId).FirstOrDefault();
-                Group newGroup = new Group(groupName, connectionId);
-                newGroup.addMember(User);
-                groups.Add(newGroup);
+                groups = GroupHelper.AddGroup(groups, groupName, clients, connectionId);
             }
             await Clients.All.SendAsync("checkAddGroup", groupAlreadyExists, groupName, connectionId);
         }
@@ -130,25 +126,18 @@ namespace signalR_server.Hubs
         public async Task JoinGroup(string connectionId, string groupName)
         {
             GroupResponse response = new GroupResponse();
-
-            string userName = "";
+            User usr = new User();
             var theGroup = groups.First();
-            if (groups.Where(o => o.getGroupName() == groupName).Any()) // if there's a group with that groupName :: aslında gerekli degil ama her ihtimale karsı
+            if (GroupHelper.GroupExists(groups, groupName)) // if there's a group with that groupName :: aslında gerekli degil ama her ihtimale karsı
             {
-                User usr = clients.Where(o => o.ConnectionId == connectionId).FirstOrDefault();
-                userName = usr.Username;
-                theGroup = groups.Where(o => o.getGroupName() == groupName).FirstOrDefault();
+                usr = UserHelper.FindUser(clients, connectionId);
+                theGroup = GroupHelper.FindGroup(groups, groupName);
 
-                response = new GroupResponse
-                {
-                    ClientId = connectionId,
-                    GroupName = groupName,
-                    members = theGroup.members,
-                    ClienInGroup = false
-                };
+                response = new GroupResponse{ClientId = connectionId, GroupName = groupName, members = theGroup.members, ClienInGroup = false};
 
-                // if the user is not already in the group, add the user to the group 
-                if (!theGroup.members.Contains(usr))
+                // if the user is not already in the group, add the user to the group
+                
+                if (!UserHelper.UserExists(theGroup.members, usr))
                 {
                     await Groups.AddToGroupAsync(connectionId, groupName);
                     theGroup.members.Add(usr);
@@ -158,20 +147,18 @@ namespace signalR_server.Hubs
             }
 
             await Clients.Caller.SendAsync("checkJoinGroup", JsonConvert.SerializeObject(response));
-            await Clients.Group(groupName).SendAsync("notificationJoinGroup", userName);
+            await Clients.OthersInGroup(groupName).SendAsync("notificationJoinGroup", usr.Username);
         }
         public async Task LeaveGroup(string connectionId, string groupName)
         {
             GroupResponse response = new GroupResponse();
-
-            string userName = "";
+            User usr = new User();
             var theGroup = groups.First();
-            if (groups.Where(o => o.getGroupName() == groupName).Any()) // if there's a group with that groupName :: aslında gerekli degil ama her ihtimale karsı
+            if (GroupHelper.GroupExists(groups, groupName)) // if there's a group with that groupName
             {
-                User usr = clients.Where(o => o.ConnectionId == connectionId).FirstOrDefault();
-                userName = usr.Username;
-                theGroup = groups.Where(o => o.getGroupName() == groupName).FirstOrDefault();
-                if (theGroup.members.Contains(usr))
+                usr = UserHelper.FindUser(clients, connectionId);
+                theGroup = GroupHelper.FindGroup(groups, groupName);
+                if (UserHelper.UserExists(theGroup.members, usr))
                 {
                     await Groups.RemoveFromGroupAsync(connectionId, groupName);
                     theGroup.members.Remove(usr);
@@ -179,9 +166,9 @@ namespace signalR_server.Hubs
                 }
 
             }
-
             await Clients.Caller.SendAsync("checkLeaveGroup");
-            await Clients.Group(groupName).SendAsync("notificationJoinGroup", userName);
+            // there should be another function 
+            //await Clients.Group(groupName).SendAsync("notificationJoinGroup", usr.Username);
         }
 
 
