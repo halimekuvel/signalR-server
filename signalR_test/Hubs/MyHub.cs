@@ -23,11 +23,11 @@ namespace signalR_server.Hubs
         {
             // find username
             var userName = "";
-            foreach (User usr in clients)
-            {
-                if (usr.ConnectionId == Context.ConnectionId)
-                    userName = usr.Username;
-            }
+            //foreach (User usr in clients)
+            //{
+            //    if (usr.ConnectionId == Context.ConnectionId)
+            //        userName = usr.Username;
+            //}
             User user = UserHelper.FindUser(clients, Context.ConnectionId);
             
             //userName = clients.Where(x => x.connectionId == Context.ConnectionId).FirstOrDefault().userName;
@@ -39,11 +39,17 @@ namespace signalR_server.Hubs
 
             GroupMessageResponse resp = new GroupMessageResponse();
             // find username
-            foreach (User usr in clients)
-            {
-                if (usr.ConnectionId == Context.ConnectionId)
-                    resp = new GroupMessageResponse { message = message, connectionId = Context.ConnectionId, sender = usr.Username, groupName = groupName };
-            }
+            //foreach (User usr in clients)
+            //{
+            //    if (usr.ConnectionId == Context.ConnectionId)
+            //        resp = new GroupMessageResponse { message = message, connectionId = Context.ConnectionId, sender = usr.Username, groupName = groupName };
+            //}
+            User user = UserHelper.FindUser(clients, Context.ConnectionId);
+            resp = new GroupMessageResponse { message = message, connectionId = Context.ConnectionId, sender = user.Username, groupName = groupName };
+
+
+
+
             groups.Where(o => o.getGroupName() == groupName).FirstOrDefault().messages.Add(resp);
             await Clients.Group(groupName).SendAsync("receiveGroupMessage", JsonConvert.SerializeObject(resp));
         }
@@ -95,8 +101,9 @@ namespace signalR_server.Hubs
                         grp.members.Remove(usr);
                         break;
                     }
-
+             
                 }
+                User user = UserHelper.FindUser(grp.members, Context.ConnectionId);
             }
             await Clients.All.SendAsync("clients", userNames);
             if (disconnectUser != null && disconnectUser.Username != null)
@@ -167,8 +174,11 @@ namespace signalR_server.Hubs
 
             }
             await Clients.Caller.SendAsync("checkLeaveGroup");
+<<<<<<< Updated upstream
             // there should be another function 
             //await Clients.Group(groupName).SendAsync("notificationJoinGroup", usr.Username);
+=======
+>>>>>>> Stashed changes
         }
 
 
