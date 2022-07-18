@@ -174,11 +174,8 @@ namespace signalR_server.Hubs
 
             }
             await Clients.Caller.SendAsync("checkLeaveGroup");
-<<<<<<< Updated upstream
             // there should be another function 
             //await Clients.Group(groupName).SendAsync("notificationJoinGroup", usr.Username);
-=======
->>>>>>> Stashed changes
         }
 
 
