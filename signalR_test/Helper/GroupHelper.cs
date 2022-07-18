@@ -23,6 +23,5 @@ namespace signalR_server.Helper
         { return groups.Where(o => o.getGroupName() == groupName).FirstOrDefault(); }
 
        
-
     }
 }

@@ -14,5 +14,7 @@ namespace signalR_server.Helper
 
         public static bool UserExists(List<User> users, User usr)
         { return users.Contains(usr); }
+
+       
     }
 }
