@@ -88,7 +88,10 @@ namespace signalR_server.Hubs
                 User user = UserHelper.FindUser(grp.members, Context.ConnectionId);
             }
             if (disconnectUser != null && disconnectUser.Username != null)
+            {
                 await Clients.All.SendAsync("userLeft", disconnectUser.Username);
+                await Clients.All.SendAsync("clients", clients.Where(o => o.Username != null).Select(o => o.Username));
+            }
         }
 
         public async Task AddGroup(string connectionId, string groupName)
@@ -184,8 +187,9 @@ namespace signalR_server.Hubs
 
             await Clients.Caller.SendAsync("userJoined", userName);
 
-            await Clients.All.SendAsync("clients", clients.Where(o => o.Username != null).Select(o => o.Username), userName);
+            await Clients.All.SendAsync("clients", clients.Where(o => o.Username != null).Select(o => o.Username));
 
+            await Clients.Others.SendAsync("notifyUserJoined", userName);
 
         }
 
