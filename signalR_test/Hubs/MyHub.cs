@@ -28,10 +28,10 @@ namespace signalR_server.Hubs
             //    if (usr.ConnectionId == Context.ConnectionId)
             //        userName = usr.Username;
             //}
-            User user = UserHelper.FindUser(clients, Context.ConnectionId);
+            User usr = UserHelper.FindUser(clients, Context.ConnectionId);
             
             //userName = clients.Where(x => x.connectionId == Context.ConnectionId).FirstOrDefault().userName;
-            await Clients.All.SendAsync("receiveMessage", message, Context.ConnectionId, userName);
+            await Clients.All.SendAsync("receiveMessage", message, Context.ConnectionId, usr.Username);
         }
 
         public async Task SendMessageToGroupAsync(string message, string groupName)
@@ -173,7 +173,7 @@ namespace signalR_server.Hubs
                 }
 
             }
-            await Clients.Caller.SendAsync("checkLeaveGroup");
+            await Clients.Caller.SendAsync("checkLeaveGroup", groupName);
             // there should be another function 
             //await Clients.Group(groupName).SendAsync("notificationJoinGroup", usr.Username);
         }
@@ -207,18 +207,6 @@ namespace signalR_server.Hubs
             await Clients.All.SendAsync("clients", clients.Where(o => o.Username != null).Select(o => o.Username));
 
 
-
-            /*  
-                Cem : 
-               1.Gruba girildikten sonra leave group butonu oluşturulmalı.
-             */
-
-            /*
-                Halime : 
-                1.Join group butonu gruba girildiğinde kalksın. Girilmemiş gruba tıklandığında gözükmeli.
-                2.Yeni mesaj geldiğinde grubun üstünde bildirim oluşmalı
-
-             */
         }
 
     }
