@@ -5,9 +5,9 @@ using System.Threading.Tasks;
 
 namespace signalR_server.Models
 {
-    public class DirectMessage
+    public class DirectMessageResponse
     {
         public string senderUsername;
-        public string message;
+        public string directMessage;
     }
 }

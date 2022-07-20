@@ -17,6 +17,8 @@ namespace signalR_server.Hubs
     {
         public static List<User> clients = new List<User>();
         public static List<Group> groups = new List<Group>();
+        public static List<DirectMessages> directMessages = new List<DirectMessages>();
+
         // client will use SendMessageAsync to send messages
         // server will use receiveMessage(event on the client)
         public async Task SendMessageAsync(string message)
@@ -29,9 +31,19 @@ namespace signalR_server.Hubs
         }
         public async Task SendMessageToUserAsync(string message, string userName, string senderConnId)
         {
-            User usr = UserHelper.FindUserByUsername(clients, userName);
-            await Clients.Client(usr.ConnectionId).SendAsync("receiveDirectMessage", message, usr.ConnectionId, userName, UserHelper.FindUser(clients, senderConnId).Username);
-            await Clients.Caller.SendAsync("receiveDirectMessage", message, usr.ConnectionId, userName);
+            User sender = new User();
+            sender = UserHelper.FindUser(clients, senderConnId);
+            User receiver = new User();
+            receiver = UserHelper.FindUserByUsername(clients, userName);
+            
+            DirectMessages dm = new DirectMessages();
+            dm = directMessages.Where(x => (x.userName1 == sender.Username || x.userName1 == receiver.Username)
+                && (x.userName2 == sender.Username || x.userName2 == receiver.Username)).FirstOrDefault();
+
+            dm.messages.Add(new DirectMessageResponse { senderUsername = sender.Username, directMessage = message });
+           
+            await Clients.Client(receiver.ConnectionId).SendAsync("receiveDirectMessage", message, receiver.ConnectionId, userName, sender.Username);
+            await Clients.Caller.SendAsync("receiveDirectMessage", message, receiver.ConnectionId, userName);
         }
 
         public async Task SendMessageToGroupAsync(string message, string groupName)
@@ -51,9 +63,22 @@ namespace signalR_server.Hubs
             await Clients.Caller.SendAsync("receivePrevGroupMsgs", JsonConvert.SerializeObject(groups.Where(o => o.getGroupName() == groupName).FirstOrDefault().messages));
         }
 
-        public async Task GetPrevUserMsgs(string userName)
+        public async Task GetPrevUserMsgs(string userName, string myConnId)
         {
-            await Clients.Caller.SendAsync("receivePrevUserMsgs", JsonConvert.SerializeObject(, userName);
+            User usr1 = UserHelper.FindUser(clients, myConnId);
+            User usr2 = UserHelper.FindUserByUsername(clients, userName);
+            DirectMessages dm = directMessages.Where(x => (x.userName1 == usr1.Username || x.userName1 == usr2.Username)
+                && (x.userName2 == usr1.Username || x.userName2 == usr2.Username)).FirstOrDefault();
+           
+            if (dm == null)
+            { // ilk kez konuşma gerçekleşecek
+                dm = new DirectMessages();
+                dm.userName1 = usr1.Username;
+                dm.userName2 = usr2.Username;
+                dm.messages.Add(new DirectMessageResponse());
+                directMessages.Add(dm);
+            }
+            await Clients.Caller.SendAsync("receivePrevUserMsgs", JsonConvert.SerializeObject(dm.messages), userName);
         }
 
         // when a client connects to the server this method awakes

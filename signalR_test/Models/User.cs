@@ -10,7 +10,6 @@ namespace signalR_server.Models
         public string Username { get; set; }
         public string ConnectionId { get; set; }
 
-        
         public User() { }
         public User(string ConnectionId)
         {
