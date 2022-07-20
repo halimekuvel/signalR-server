@@ -27,10 +27,10 @@ namespace signalR_server.Hubs
             //userName = clients.Where(x => x.connectionId == Context.ConnectionId).FirstOrDefault().userName;
             await Clients.All.SendAsync("receiveMessage", message, Context.ConnectionId, usr.Username);
         }
-        public async Task SendMessageToUserAsync(string message, string userName)
+        public async Task SendMessageToUserAsync(string message, string userName, string senderConnId)
         {
             User usr = UserHelper.FindUserByUsername(clients, userName);
-            await Clients.Client(usr.ConnectionId).SendAsync("receiveDirectMessage", message, usr.ConnectionId, userName);
+            await Clients.Client(usr.ConnectionId).SendAsync("receiveDirectMessage", message, usr.ConnectionId, userName, UserHelper.FindUser(clients, senderConnId).Username);
             await Clients.Caller.SendAsync("receiveDirectMessage", message, usr.ConnectionId, userName);
         }
 
