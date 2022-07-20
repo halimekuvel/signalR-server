@@ -51,6 +51,11 @@ namespace signalR_server.Hubs
             await Clients.Caller.SendAsync("receivePrevGroupMsgs", JsonConvert.SerializeObject(groups.Where(o => o.getGroupName() == groupName).FirstOrDefault().messages));
         }
 
+        public async Task GetPrevUserMsgs(string userName)
+        {
+            await Clients.Caller.SendAsync("receivePrevUserMsgs", JsonConvert.SerializeObject(, userName);
+        }
+
         // when a client connects to the server this method awakes
         public override async Task OnConnectedAsync()
         {

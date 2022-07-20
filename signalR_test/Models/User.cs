@@ -9,15 +9,17 @@ namespace signalR_server.Models
     {
         public string Username { get; set; }
         public string ConnectionId { get; set; }
+
+        
+        public User() { }
+        public User(string ConnectionId)
+        {
+            this.ConnectionId = ConnectionId;
+        }
         public User(string ConnectionId, string Username)
         {
             this.ConnectionId = ConnectionId;
             this.Username = Username;
         }
-        public User() { }
-        public User(string ConnectionId)
-        {
-            this.ConnectionId = ConnectionId;
-        }      
     }
 }
