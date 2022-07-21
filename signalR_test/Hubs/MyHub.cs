@@ -1,5 +1,6 @@
 ﻿using Microsoft.AspNetCore.SignalR;
 using Newtonsoft.Json;
+using signalR_server.Helper;
 using signalR_server.Interfaces;
 using signalR_server.Interfaces.Enums;
 using signalR_server.Models;
@@ -14,21 +15,35 @@ namespace signalR_server.Hubs
 {
     public class MyHub : Hub
     {
-        static List<User> clients = new List<User>();
-        static List<Group> groups = new List<Group>();
+        public static List<User> clients = new List<User>();
+        public static List<Group> groups = new List<Group>();
+        public static List<DirectMessages> directMessages = new List<DirectMessages>();
+
         // client will use SendMessageAsync to send messages
         // server will use receiveMessage(event on the client)
         public async Task SendMessageAsync(string message)
         {
             // find username
-            var userName = "";
-            foreach (User usr in clients)
-            {
-                if (usr.connectionId == Context.ConnectionId)
-                    userName = usr.userName;
-            }
+            User usr = UserHelper.FindUser(clients, Context.ConnectionId);
+            
             //userName = clients.Where(x => x.connectionId == Context.ConnectionId).FirstOrDefault().userName;
-            await Clients.All.SendAsync("receiveMessage", message, Context.ConnectionId, userName);
+            await Clients.All.SendAsync("receiveMessage", message, Context.ConnectionId, usr.Username);
+        }
+        public async Task SendMessageToUserAsync(string message, string userName, string senderConnId)
+        {
+            User sender = new User();
+            sender = UserHelper.FindUser(clients, senderConnId);
+            User receiver = new User();
+            receiver = UserHelper.FindUserByUsername(clients, userName);
+            
+            DirectMessages dm = new DirectMessages();
+            dm = directMessages.Where(x => (x.userName1 == sender.Username || x.userName1 == receiver.Username)
+                && (x.userName2 == sender.Username || x.userName2 == receiver.Username)).FirstOrDefault();
+
+            dm.messages.Add(new DirectMessageResponse { senderUsername = sender.Username, directMessage = message });
+           
+            await Clients.Client(receiver.ConnectionId).SendAsync("receiveDirectMessage", message, receiver.ConnectionId, userName, sender.Username);
+            await Clients.Caller.SendAsync("receiveDirectMessage", message, receiver.ConnectionId, userName, sender.Username);
         }
 
         public async Task SendMessageToGroupAsync(string message, string groupName)
@@ -36,11 +51,9 @@ namespace signalR_server.Hubs
 
             GroupMessageResponse resp = new GroupMessageResponse();
             // find username
-            foreach (User usr in clients)
-            {
-                if (usr.connectionId == Context.ConnectionId)
-                    resp = new GroupMessageResponse { message = message, connectionId = Context.ConnectionId, sender = usr.userName, groupName = groupName };
-            }
+            User user = UserHelper.FindUser(clients, Context.ConnectionId);
+            resp = new GroupMessageResponse { message = message, connectionId = Context.ConnectionId, sender = user.Username, groupName = groupName };
+
             groups.Where(o => o.getGroupName() == groupName).FirstOrDefault().messages.Add(resp);
             await Clients.Group(groupName).SendAsync("receiveGroupMessage", JsonConvert.SerializeObject(resp));
         }
@@ -48,6 +61,21 @@ namespace signalR_server.Hubs
         public async Task GetPrevGroupMsgs(string groupName)
         {
             await Clients.Caller.SendAsync("receivePrevGroupMsgs", JsonConvert.SerializeObject(groups.Where(o => o.getGroupName() == groupName).FirstOrDefault().messages));
+        }
+
+        public async Task GetPrevUserMsgs(string userName, string myConnId)
+        {
+            User usr1 = UserHelper.FindUser(clients, myConnId);
+            User usr2 = UserHelper.FindUserByUsername(clients, userName);
+            DirectMessages dm = directMessages.Where(x => (x.userName1 == usr1.Username || x.userName1 == usr2.Username)
+                && (x.userName2 == usr1.Username || x.userName2 == usr2.Username)).FirstOrDefault();
+           
+            if (dm == null)
+            { // ilk kez konuşma gerçekleşecek
+                dm = new DirectMessages { userName1 = usr1.Username, userName2 = usr2.Username, messages = new List<DirectMessageResponse>() };
+                directMessages.Add(dm);
+            }
+            await Clients.Caller.SendAsync("receivePrevUserMsgs", JsonConvert.SerializeObject(dm.messages));
         }
 
         // when a client connects to the server this method awakes
@@ -73,35 +101,29 @@ namespace signalR_server.Hubs
             // userLeft : an event in the client
             await Task.Delay(3000);
 
-            User disconnectUser = clients.FirstOrDefault(x => x.connectionId == Context.ConnectionId);
+            User disconnectUser = clients.FirstOrDefault(x => x.ConnectionId == Context.ConnectionId);
             clients.Remove(disconnectUser); // remove from the clients list
             List<string> userNames = new List<string>();
-            //foreach (User usr in clients)
-            //{
-            //    if (usr.userName != null)
-            //        userNames.Add(usr.userName);
-            //}
-            userNames = clients.Where(o => o.userName != null).Select(o => o.userName).ToList();
+
+            userNames = clients.Where(o => o.Username != null).Select(o => o.Username).ToList();
             // delete the user from the groups
             foreach (Group grp in groups)
             {
-                foreach (User usr in grp.members)
+                User user = UserHelper.FindUser(grp.members, Context.ConnectionId);
+                if (user.ConnectionId == Context.ConnectionId)
                 {
-                    if (usr.connectionId == Context.ConnectionId)
-                    {
-                        grp.members.Remove(usr);
-                        break;
-                    }
-
+                    await Groups.RemoveFromGroupAsync(Context.ConnectionId, grp.getGroupName());
+                    grp.members.Remove(user);
                 }
             }
-            await Clients.All.SendAsync("clients", userNames);
-            if (disconnectUser != null && disconnectUser.userName != null)
-                await Clients.All.SendAsync("userLeft", disconnectUser.userName);
-
-
-            //await Clients.All.SendAsync("userLeft", disconnectUser.userName);
+            
+            if (disconnectUser != null && disconnectUser.Username != null)
+            {
+                await Clients.All.SendAsync("userLeft", disconnectUser.Username);
+                await Clients.All.SendAsync("clients", clients.Where(o => o.Username != null).Select(o => o.Username));
+            }
         }
+
 
         public async Task AddGroup(string connectionId, string groupName)
         {
@@ -113,15 +135,11 @@ namespace signalR_server.Hubs
             }
             // if there isn't already a group with that groupName
             // create group and add the creator to the group
-            if (!groups.Where(o => o.getGroupName() == groupName).Any())
+            if (!GroupHelper.GroupExists(groups, groupName))
             {
                 groupAlreadyExists = false;
-
                 await Groups.AddToGroupAsync(connectionId, groupName);
-                User User = clients.Where(o => o.connectionId == connectionId).FirstOrDefault();
-                Group newGroup = new Group(groupName, connectionId);
-                newGroup.addMember(User);
-                groups.Add(newGroup);
+                groups = GroupHelper.AddGroup(groups, groupName, clients, connectionId);
             }
             await Clients.All.SendAsync("checkAddGroup", groupAlreadyExists, groupName, connectionId);
         }
@@ -129,25 +147,18 @@ namespace signalR_server.Hubs
         public async Task JoinGroup(string connectionId, string groupName)
         {
             GroupResponse response = new GroupResponse();
-
-            string userName = "";
+            User usr = new User();
             var theGroup = groups.First();
-            if (groups.Where(o => o.getGroupName() == groupName).Any()) // if there's a group with that groupName :: aslında gerekli degil ama her ihtimale karsı
+            if (GroupHelper.GroupExists(groups, groupName)) // if there's a group with that groupName :: aslında gerekli degil ama her ihtimale karsı
             {
-                User usr = clients.Where(o => o.connectionId == connectionId).FirstOrDefault();
-                userName = usr.userName;
-                theGroup = groups.Where(o => o.getGroupName() == groupName).FirstOrDefault();
+                usr = UserHelper.FindUser(clients, connectionId);
+                theGroup = GroupHelper.FindGroup(groups, groupName);
 
-                response = new GroupResponse
-                {
-                    ClientId = connectionId,
-                    GroupName = groupName,
-                    members = theGroup.members,
-                    ClienInGroup = false
-                };
+                response = new GroupResponse{ClientId = connectionId, GroupName = groupName, members = theGroup.members, ClienInGroup = false};
 
-                // if the user is not already in the group, add the user to the group 
-                if (!theGroup.members.Contains(usr))
+                // if the user is not already in the group, add the user to the group
+                
+                if (!UserHelper.UserExists(theGroup.members, usr))
                 {
                     await Groups.AddToGroupAsync(connectionId, groupName);
                     theGroup.members.Add(usr);
@@ -157,82 +168,48 @@ namespace signalR_server.Hubs
             }
 
             await Clients.Caller.SendAsync("checkJoinGroup", JsonConvert.SerializeObject(response));
-            await Clients.Group(groupName).SendAsync("notificationJoinGroup", userName);
-        }        
+            await Clients.OthersInGroup(groupName).SendAsync("notificationJoinGroup", usr.Username);
+        }
         public async Task LeaveGroup(string connectionId, string groupName)
         {
-            GroupResponse response = new GroupResponse();
-            
-            string userName = "";
+            User usr = new User();
             var theGroup = groups.First();
-            if (groups.Where(o => o.getGroupName() == groupName).Any()) // if there's a group with that groupName :: aslında gerekli degil ama her ihtimale karsı
+            if (GroupHelper.GroupExists(groups, groupName)) // if there's a group with that groupName
             {
-                User usr = clients.Where(o => o.connectionId == connectionId).FirstOrDefault();
-                userName = usr.userName;
-                theGroup = groups.Where(o => o.getGroupName() == groupName).FirstOrDefault();
-
-                response = new GroupResponse
-                {
-                    ClientId = connectionId,
-                    GroupName = groupName,
-                    members = theGroup.members,
-                    ClienInGroup = false
-                };
-
-                if (theGroup.members.Contains(usr))
+                usr = UserHelper.FindUser(clients, connectionId);
+                theGroup = GroupHelper.FindGroup(groups, groupName);
+                if (UserHelper.UserExists(theGroup.members, usr))
                 {
                     await Groups.RemoveFromGroupAsync(connectionId, groupName);
                     theGroup.members.Remove(usr);
-                    response.ClienInGroup = true;
                 }
 
             }
-
-            await Clients.Caller.SendAsync("checkLeaveGroup", JsonConvert.SerializeObject(response));
-            await Clients.Group(groupName).SendAsync("notificationJoinGroup", userName);
+            await Clients.Caller.SendAsync("checkLeaveGroup", groupName);
+            // there should be another function 
+            //await Clients.Group(groupName).SendAsync("notificationJoinGroup", usr.Username);
         }
 
 
         public async Task AddUserName(string userName, string connectionId)
         {
-            if (string.IsNullOrEmpty(userName))
+            var client = clients.FirstOrDefault(o => o.ConnectionId == connectionId);
+            if (string.IsNullOrEmpty(userName) || client == null || clients.Where(o => o.Username == userName).Count() > 0)
             {
                 await Clients.Caller.SendAsync("checkUserName", userName);
                 return;
             };
-
-            var client = clients.FirstOrDefault(o => o.connectionId == connectionId);
-            if (client == null)
-            {
-                await Clients.Caller.SendAsync("checkUserName", userName);
-                return;
-            };
-
-            if (clients.Where(o => o.userName == userName).Count() > 0)
-            {
-                await Clients.Caller.SendAsync("checkUserName", userName);
-                return;
-            };
-
-            client.userName = userName;
+            client.Username = userName;
 
             await Clients.Caller.SendAsync("userJoined", userName);
+            await Clients.All.SendAsync("clients", clients.Where(o => o.Username != null).Select(o => o.Username));
+            await Clients.Others.SendAsync("notifyUserJoined", userName);
 
-            await Clients.All.SendAsync("clients", clients.Where(o => o.userName != null).Select(o => o.userName));
+        }
 
-
-
-            /*  
-                Cem : 
-               1.Gruba girildikten sonra leave group butonu oluşturulmalı.
-             */
-
-            /*
-                Halime : 
-                1.Join group butonu gruba girildiğinde kalksın. Girilmemiş gruba tıklandığında gözükmeli.
-                2.Yeni mesaj geldiğinde grubun üstünde bildirim oluşmalı
-
-             */
+        public async Task RequestUserList()
+        {
+            await Clients.Caller.SendAsync("receiveUserList", JsonConvert.SerializeObject(clients));
         }
 
     }
