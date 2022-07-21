@@ -207,6 +207,11 @@ namespace signalR_server.Hubs
 
         }
 
+        public async Task RequestUserList()
+        {
+            await Clients.Caller.SendAsync("receiveUserList", JsonConvert.SerializeObject(clients));
+        }
+
     }
 }
 
