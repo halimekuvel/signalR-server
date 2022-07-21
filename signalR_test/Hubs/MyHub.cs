@@ -84,7 +84,8 @@ namespace signalR_server.Hubs
             // notify the users that a client has joined
             // userJoined : an event in the client
             await Clients.Caller.SendAsync("getConnectionId", Context.ConnectionId);
-            clients.Add(new User(Context.ConnectionId)); // add to clients list
+            User newClient = new User(Context.ConnectionId);
+            clients.Add(newClient); // add to clients list
             List<string> groupNames = new List<string>();
             foreach (Group grp in groups)
             {
@@ -92,6 +93,23 @@ namespace signalR_server.Hubs
                     groupNames.Add(grp.getGroupName());
             }
             await Clients.Caller.SendAsync("updateGroups", groupNames);
+        }
+
+        private async Task CheckUserTime(User client)
+        {
+            var time = DateTime.Now;
+            while (true)
+            {
+                if ((DateTime.Now - time).TotalSeconds > 5){
+                    if ((DateTime.Now - client.CreatedDate).TotalSeconds > 60)
+                    {
+                        await Clients.Client(client.ConnectionId).SendAsync("timeOutNotification");
+                        return;
+                    }
+                    time = DateTime.Now;
+                }
+               
+            }
         }
 
         // when a client disconnects from the server this method awakes
@@ -204,6 +222,7 @@ namespace signalR_server.Hubs
             await Clients.Caller.SendAsync("userJoined", userName);
             await Clients.All.SendAsync("clients", clients.Where(o => o.Username != null).Select(o => o.Username));
             await Clients.Others.SendAsync("notifyUserJoined", userName);
+            CheckUserTime(client);
 
         }
 
