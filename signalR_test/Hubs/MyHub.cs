@@ -43,7 +43,7 @@ namespace signalR_server.Hubs
             dm.messages.Add(new DirectMessageResponse { senderUsername = sender.Username, directMessage = message });
            
             await Clients.Client(receiver.ConnectionId).SendAsync("receiveDirectMessage", message, receiver.ConnectionId, userName, sender.Username);
-            await Clients.Caller.SendAsync("receiveDirectMessage", message, receiver.ConnectionId, userName);
+            await Clients.Caller.SendAsync("receiveDirectMessage", message, receiver.ConnectionId, userName, sender.Username);
         }
 
         public async Task SendMessageToGroupAsync(string message, string groupName)
@@ -72,13 +72,10 @@ namespace signalR_server.Hubs
            
             if (dm == null)
             { // ilk kez konuşma gerçekleşecek
-                dm = new DirectMessages();
-                dm.userName1 = usr1.Username;
-                dm.userName2 = usr2.Username;
-                dm.messages.Add(new DirectMessageResponse());
+                dm = new DirectMessages { userName1 = usr1.Username, userName2 = usr2.Username, messages = new List<DirectMessageResponse>() };
                 directMessages.Add(dm);
             }
-            await Clients.Caller.SendAsync("receivePrevUserMsgs", JsonConvert.SerializeObject(dm.messages), userName);
+            await Clients.Caller.SendAsync("receivePrevUserMsgs", JsonConvert.SerializeObject(dm.messages));
         }
 
         // when a client connects to the server this method awakes
