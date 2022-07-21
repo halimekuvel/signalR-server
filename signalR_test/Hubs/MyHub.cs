@@ -200,7 +200,7 @@ namespace signalR_server.Hubs
                 return;
             };
             client.Username = userName;
-
+            client.CreatedDate = DateTime.Now;
             await Clients.Caller.SendAsync("userJoined", userName);
             await Clients.All.SendAsync("clients", clients.Where(o => o.Username != null).Select(o => o.Username));
             await Clients.Others.SendAsync("notifyUserJoined", userName);
