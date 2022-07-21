@@ -212,6 +212,12 @@ namespace signalR_server.Hubs
             await Clients.Caller.SendAsync("receiveUserList", JsonConvert.SerializeObject(clients));
         }
 
+        public async Task SendAnnouncement(string message, List<string> connectionIdList)
+        {
+            await Clients.Clients(connectionIdList).SendAsync("receiveAnnouncement", message, UserHelper.FindUser(clients, Context.ConnectionId).Username);
+
+        }
+
     }
 }
 
