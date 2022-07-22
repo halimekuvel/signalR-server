@@ -95,15 +95,16 @@ namespace signalR_server.Hubs
             await Clients.Caller.SendAsync("updateGroups", groupNames);
         }
 
-        private async Task CheckUserTime(User client)
+        public async Task CheckUserTime(User client)
         {
             var time = DateTime.Now;
             while (true)
             {
                 if ((DateTime.Now - time).TotalSeconds > 5){
-                    if ((DateTime.Now - client.CreatedDate).TotalSeconds > 60)
+                    if ((DateTime.Now - client.CreatedDate).TotalSeconds > 10)
                     {
-                        await Clients.Client(client.ConnectionId).SendAsync("timeOutNotification");
+                        //await Clients.Client(client.ConnectionId).SendAsync("timeOutNotification");
+                        await Clients.Caller.SendAsync("timeOutNotification");
                         return;
                     }
                     time = DateTime.Now;
@@ -111,6 +112,28 @@ namespace signalR_server.Hubs
                
             }
         }
+
+        //public async Task CheckUserTime()
+        //{
+        //    var time = DateTime.Now;
+        //    while (true)
+        //    {
+        //        if ((DateTime.Now - time).TotalSeconds > 5)
+        //        {
+        //            foreach (User client in clients)
+        //            {
+        //                if ((DateTime.Now - client.CreatedDate).TotalSeconds > 10)
+        //                {
+        //                    await Clients.Client(client.ConnectionId).SendAsync("timeOutNotification");
+        //                    await Clients.Caller.SendAsync("timeOutNotification");
+        //                    return;
+        //                }
+        //            }
+        //            time = DateTime.Now;
+        //        }
+        //    }
+        //}
+  
 
         // when a client disconnects from the server this method awakes
         public override async Task OnDisconnectedAsync(Exception exception)
@@ -222,8 +245,8 @@ namespace signalR_server.Hubs
             await Clients.Caller.SendAsync("userJoined", userName);
             await Clients.All.SendAsync("clients", clients.Where(o => o.Username != null).Select(o => o.Username));
             await Clients.Others.SendAsync("notifyUserJoined", userName);
-            CheckUserTime(client);
-
+            await CheckUserTime(client);
+            
         }
 
         public async Task RequestUserList()
