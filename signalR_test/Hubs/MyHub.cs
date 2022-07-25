@@ -25,7 +25,7 @@ namespace signalR_server.Hubs
         {
             // find username
             User usr = UserHelper.FindUser(clients, Context.ConnectionId);
-            
+
             //userName = clients.Where(x => x.connectionId == Context.ConnectionId).FirstOrDefault().userName;
             await Clients.All.SendAsync("receiveMessage", message, Context.ConnectionId, usr.Username);
         }
@@ -35,13 +35,13 @@ namespace signalR_server.Hubs
             sender = UserHelper.FindUser(clients, senderConnId);
             User receiver = new User();
             receiver = UserHelper.FindUserByUsername(clients, userName);
-            
+
             DirectMessages dm = new DirectMessages();
             dm = directMessages.Where(x => (x.userName1 == sender.Username || x.userName1 == receiver.Username)
                 && (x.userName2 == sender.Username || x.userName2 == receiver.Username)).FirstOrDefault();
 
             dm.messages.Add(new DirectMessageResponse { senderUsername = sender.Username, directMessage = message });
-           
+
             await Clients.Client(receiver.ConnectionId).SendAsync("receiveDirectMessage", message, receiver.ConnectionId, userName, sender.Username);
             await Clients.Caller.SendAsync("receiveDirectMessage", message, receiver.ConnectionId, userName, sender.Username);
         }
@@ -69,7 +69,7 @@ namespace signalR_server.Hubs
             User usr2 = UserHelper.FindUserByUsername(clients, userName);
             DirectMessages dm = directMessages.Where(x => (x.userName1 == usr1.Username || x.userName1 == usr2.Username)
                 && (x.userName2 == usr1.Username || x.userName2 == usr2.Username)).FirstOrDefault();
-           
+
             if (dm == null)
             { // ilk kez konuşma gerçekleşecek
                 dm = new DirectMessages { userName1 = usr1.Username, userName2 = usr2.Username, messages = new List<DirectMessageResponse>() };
@@ -95,22 +95,17 @@ namespace signalR_server.Hubs
             await Clients.Caller.SendAsync("updateGroups", groupNames);
         }
 
-        public async Task CheckUserTime(User client)
+        public async Task CheckUserTimeAsync(User client)
         {
-            var time = DateTime.Now;
             while (true)
             {
-                if ((DateTime.Now - time).TotalSeconds > 5){
-                    if ((DateTime.Now - client.CreatedDate).TotalSeconds > 10)
-                    {
-                        //await Clients.Client(client.ConnectionId).SendAsync("timeOutNotification");
-                        await Clients.Caller.SendAsync("timeOutNotification");
-                        return;
-                    }
-                    time = DateTime.Now;
+               await Task.Delay(5000);
+                if ((DateTime.Now > client.CreatedDate.AddSeconds(10)))
+                {
+                    break;
                 }
-               
             }
+            await Clients.All.SendAsync("timeOutNotification");
         }
 
         //public async Task CheckUserTime()
@@ -133,7 +128,7 @@ namespace signalR_server.Hubs
         //        }
         //    }
         //}
-  
+
 
         // when a client disconnects from the server this method awakes
         public override async Task OnDisconnectedAsync(Exception exception)
@@ -157,7 +152,7 @@ namespace signalR_server.Hubs
                     grp.members.Remove(user);
                 }
             }
-            
+
             if (disconnectUser != null && disconnectUser.Username != null)
             {
                 await Clients.All.SendAsync("userLeft", disconnectUser.Username);
@@ -195,10 +190,10 @@ namespace signalR_server.Hubs
                 usr = UserHelper.FindUser(clients, connectionId);
                 theGroup = GroupHelper.FindGroup(groups, groupName);
 
-                response = new GroupResponse{ClientId = connectionId, GroupName = groupName, members = theGroup.members, ClienInGroup = false};
+                response = new GroupResponse { ClientId = connectionId, GroupName = groupName, members = theGroup.members, ClienInGroup = false };
 
                 // if the user is not already in the group, add the user to the group
-                
+
                 if (!UserHelper.UserExists(theGroup.members, usr))
                 {
                     await Groups.AddToGroupAsync(connectionId, groupName);
@@ -245,8 +240,8 @@ namespace signalR_server.Hubs
             await Clients.Caller.SendAsync("userJoined", userName);
             await Clients.All.SendAsync("clients", clients.Where(o => o.Username != null).Select(o => o.Username));
             await Clients.Others.SendAsync("notifyUserJoined", userName);
-            await CheckUserTime(client);
-            
+            Task.Run(() => CheckUserTimeAsync(client));
+
         }
 
         public async Task RequestUserList()
