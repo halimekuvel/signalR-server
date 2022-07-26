@@ -209,7 +209,7 @@ namespace signalR_server.Hubs
         public async Task AddUserName(string userName, string connectionId)
         {
             var client = clients.FirstOrDefault(o => o.ConnectionId == connectionId);
-            if (string.IsNullOrEmpty(userName) || client == null || clients.Where(o => o.Username == userName).Count() > 0)
+            if (string.IsNullOrEmpty(userName) || client == null || clients.Where(o => o.Username == userName).Count() > 0 || userName.Count() > 20 )
             {
                 await Clients.Caller.SendAsync("checkUserName", userName);
                 return;
